@@ -7,6 +7,7 @@ function AddMusic() {
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
   const [category, setCategory] = useState('');
+  const [categoryType, setCategoryType] = useState(''); // New state for category type
   const [releaseDate, setReleaseDate] = useState(new Date().toISOString().split('T')[0]);
   const [categories, setCategories] = useState([]);
   const [error, setError] = useState('');
@@ -26,9 +27,18 @@ function AddMusic() {
           withCredentials: true,
         });
         setCategories(res.data);
-        if (res.data.length > 0) setCategory(res.data[0]._id);
+        if (res.data.length > 0) {
+          setCategory(res.data[0]._id);
+          // Optionally set the first type if available
+          if (res.data[0].types.length > 0) {
+            setCategoryType(res.data[0].types[0]._id);
+          } else {
+            setCategoryType('');
+          }
+        }
       } catch (err) {
         console.error('Fetch categories error:', err);
+        setError('Failed to fetch categories');
       }
     };
     fetchCategories();
@@ -57,6 +67,18 @@ function AddMusic() {
     setThumbnail(e.target.files[0]);
   };
 
+  const handleCategoryChange = (e) => {
+    const newCategory = e.target.value;
+    setCategory(newCategory);
+    // Reset categoryType when category changes
+    const selectedCategory = categories.find(cat => cat._id === newCategory);
+    if (selectedCategory && selectedCategory.types.length > 0) {
+      setCategoryType(selectedCategory.types[0]._id);
+    } else {
+      setCategoryType('');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -66,6 +88,7 @@ function AddMusic() {
     formData.append('title', title);
     formData.append('artist', artist);
     formData.append('category', category);
+    if (categoryType) formData.append('categoryType', categoryType); // Add categoryType if selected
     formData.append('file', file);
     if (thumbnail) formData.append('thumbnail', thumbnail);
     formData.append('duration', duration.toString());
@@ -89,10 +112,17 @@ function AddMusic() {
       setDuration(0);
       setDisplayDuration('');
       setReleaseDate(new Date().toISOString().split('T')[0]);
+      // Reset category and type to initial values
+      if (categories.length > 0) {
+        setCategory(categories[0]._id);
+        setCategoryType(categories[0].types.length > 0 ? categories[0].types[0]._id : '');
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to add music');
     }
   };
+
+  const selectedCategory = categories.find(cat => cat._id === category) || { types: [] };
 
   return (
     <div className="card">
@@ -128,7 +158,7 @@ function AddMusic() {
           <select
             className="form-control"
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            onChange={handleCategoryChange}
             required
           >
             {categories.map((cat) => (
@@ -136,6 +166,26 @@ function AddMusic() {
                 {cat.name}
               </option>
             ))}
+          </select>
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Category Type (optional):</label>
+          <select
+            className="form-control"
+            value={categoryType}
+            onChange={(e) => setCategoryType(e.target.value)}
+            disabled={selectedCategory.types.length === 0}
+          >
+            {selectedCategory.types.length === 0 ? (
+              <option value="">No types available</option>
+            ) : (
+              selectedCategory.types.map((type) => (
+                <option key={type._id} value={type._id}>
+                  {type.name}
+                </option>
+              ))
+            )}
           </select>
         </div>
 

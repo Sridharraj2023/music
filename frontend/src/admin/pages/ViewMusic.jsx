@@ -5,11 +5,14 @@ import './ViewMusic.css';
 
 function ViewMusic() {
   const [musicList, setMusicList] = useState([]);
+  const [categories, setCategories] = useState([]); // Add categories state
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState('');
   const [editArtist, setEditArtist] = useState('');
+  const [editCategory, setEditCategory] = useState(''); // New state for category
+  const [editCategoryType, setEditCategoryType] = useState(''); // New state for category type
   const [editThumbnail, setEditThumbnail] = useState(null);
   const [editAudio, setEditAudio] = useState(null);
   const [playingId, setPlayingId] = useState(null);
@@ -24,22 +27,29 @@ function ViewMusic() {
         setError('Please log in to view music');
         return;
       }
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/music`, {
-        headers: { Authorization: `Bearer ${token}` },
-        withCredentials: true,
-      });
-      
-      setMusicList(res.data);
+      const [musicRes, categoriesRes] = await Promise.all([
+        axios.get(`${import.meta.env.VITE_API_URL}/music`, {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
+        }),
+        axios.get(`${import.meta.env.VITE_API_URL}/categories`, {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
+        }),
+      ]);
+
+      setMusicList(musicRes.data);
+      setCategories(categoriesRes.data);
       setCurrentTimes(prev => ({
         ...prev,
-        ...res.data.reduce((acc, music) => {
+        ...musicRes.data.reduce((acc, music) => {
           if (!(music._id in prev)) acc[music._id] = 0;
           return acc;
         }, {})
       }));
       setDurations(prev => ({
         ...prev,
-        ...res.data.reduce((acc, music) => {
+        ...musicRes.data.reduce((acc, music) => {
           if (!(music._id in prev)) acc[music._id] = 0;
           return acc;
         }, {})
@@ -74,6 +84,8 @@ function ViewMusic() {
     setEditingId(music._id);
     setEditTitle(music.title);
     setEditArtist(music.artist);
+    setEditCategory(music.category?._id || ''); // Use category ID
+    setEditCategoryType(music.categoryType?._id || ''); // Use categoryType ID if present
     setEditThumbnail(null);
     setEditAudio(null);
   };
@@ -85,8 +97,10 @@ function ViewMusic() {
       
       formData.append('title', editTitle);
       formData.append('artist', editArtist);
+      formData.append('category', editCategory);
+      if (editCategoryType) formData.append('categoryType', editCategoryType); // Include if selected
       if (editThumbnail) formData.append('thumbnail', editThumbnail);
-      if (editAudio) formData.append('audio', editAudio);
+      if (editAudio) formData.append('file', editAudio);
 
       await axios.put(
         `${import.meta.env.VITE_API_URL}/music/${id}`,
@@ -108,6 +122,17 @@ function ViewMusic() {
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update music');
+    }
+  };
+
+  const handleCategoryChange = (e) => {
+    const newCategory = e.target.value;
+    setEditCategory(newCategory);
+    const selectedCategory = categories.find(cat => cat._id === newCategory);
+    if (selectedCategory && selectedCategory.types.length > 0) {
+      setEditCategoryType(selectedCategory.types[0]._id);
+    } else {
+      setEditCategoryType('');
     }
   };
 
@@ -151,6 +176,8 @@ function ViewMusic() {
 
   const placeholderImage = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAjWjB1QAAAABJRU5ErkJggg==';
 
+  const selectedCategory = categories.find(cat => cat._id === editCategory) || { types: [] };
+
   return (
     <div className="view-music">
       <h2>View Music</h2>
@@ -193,6 +220,33 @@ function ViewMusic() {
                     onChange={(e) => setEditArtist(e.target.value)}
                     placeholder="Artist"
                   />
+
+                  <select
+                    value={editCategory}
+                    onChange={handleCategoryChange}
+                  >
+                    {categories.map((cat) => (
+                      <option key={cat._id} value={cat._id}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={editCategoryType}
+                    onChange={(e) => setEditCategoryType(e.target.value)}
+                    disabled={selectedCategory.types.length === 0}
+                  >
+                    {selectedCategory.types.length === 0 ? (
+                      <option value="">No types available</option>
+                    ) : (
+                      selectedCategory.types.map((type) => (
+                        <option key={type._id} value={type._id}>
+                          {type.name}
+                        </option>
+                      ))
+                    )}
+                  </select>
 
                   <div className="file-inputs">
                     <div className="file-input-group">
@@ -242,6 +296,8 @@ function ViewMusic() {
                   />
                   <h3>{music.title}</h3>
                   <p>Artist: {music.artist}</p>
+                  <p>Category: {music.category?.name || 'Unknown'}</p>
+                  <p>Type: {music.categoryType?.name || 'None'}</p>
                   <div className="custom-player">
                     <button
                       className="play-pause-btn"

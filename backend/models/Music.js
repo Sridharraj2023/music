@@ -12,21 +12,25 @@ const musicSchema = mongoose.Schema(
     },
     category: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Category", 
+      ref: "Category",
       required: true,
+    },
+    categoryType: {
+      type: mongoose.Schema.Types.ObjectId, // Reference to a specific type's _id within the category
+      required: false, // Optional, as not all categories might have types
     },
     fileUrl: {
       type: String,
-      required: true, 
+      required: true,
     },
     thumbnailUrl: {
       type: String,
-      default: '' 
+      default: '',
     },
     duration: {
       type: Number,
       required: true,
-      min: 1 
+      min: 1,
     },
     releaseDate: {
       type: Date,

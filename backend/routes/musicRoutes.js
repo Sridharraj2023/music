@@ -1,45 +1,41 @@
-// import express from 'express';
-// import { getMusic, createMusic } from '../controllers/musicController.js';
-// import { protect } from '../middleware/authMiddleware.js';
-// import { adminOnly } from '../middleware/adminMiddleware.js';
-// import { upload } from '../middleware/uploadMiddleware.js';
-
-
-// const router = express.Router();
-
-// router.get('/', getMusic); 
-// router.post('/create', protect, adminOnly, upload.single('file'), createMusic);
-
-// export default router;
-
 import express from 'express';
-import { getMusic, createMusic,updateMusic, deleteMusic } from '../controllers/musicController.js';
+import { getMusic, createMusic, updateMusic, deleteMusic, getMusicByCategory } from '../controllers/musicController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { adminOnly } from '../middleware/adminMiddleware.js';
-
-import upload  from '../middleware/uploadMiddleware.js';
+import upload from '../middleware/uploadMiddleware.js';
 
 const router = express.Router();
 
 router.get('/', getMusic); // Public access
-// Change the route to:
+router.get('/category/:categoryId', getMusicByCategory); // Public access to get music by category
 router.post(
-    '/create',
+  '/create',
+  protect,
+  adminOnly,
+  (req, res, next) => {
+    upload(req, res, (err) => {
+      if (err) {
+        return res.status(400).json({ message: 'File upload error', error: err.message });
+      }
+      next();
+    });
+  },
+  createMusic
+);
+router.route('/:id')
+  .delete(protect, adminOnly, deleteMusic)
+  .put(
     protect,
     adminOnly,
     (req, res, next) => {
       upload(req, res, (err) => {
         if (err) {
-          return res.status(400).json({ message: 'File upload error' });
+          return res.status(400).json({ message: 'File upload error', error: err.message });
         }
         next();
       });
     },
-    createMusic
+    updateMusic
   );
-  // Ensure routes are properly defined
-router.route('/:id')
-.delete(protect, adminOnly, deleteMusic)
-.put(protect, adminOnly, upload, updateMusic); // Include upload middleware for updates
 
 export default router;

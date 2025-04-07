@@ -2,27 +2,56 @@ import { Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 
-function ProtectedRoute({ children, requiredRole }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(null);
+function ProtectedRoute({ children, requiredRole, allowGuest = false }) {
+  const [authState, setAuthState] = useState({
+    loading: true,
+    isAuthenticated: false,
+    redirectPath: null
+  });
 
   useEffect(() => {
     const checkAuth = async () => {
+      const token = localStorage.getItem('token');
+
+      if (!token) {
+        setAuthState({
+          loading: false,
+          isAuthenticated: allowGuest,
+          redirectPath: allowGuest ? null : '/login'
+        });
+        return;
+      }
+
       try {
         const res = await axios.get(`${import.meta.env.VITE_API_URL}/users/profile`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
         });
-        console.log('ProtectedRoute response:', res.data);
-        setIsAuthenticated(res.data.role === requiredRole);
+        
+        if (res.data.role === requiredRole) {
+          setAuthState({ loading: false, isAuthenticated: true, redirectPath: null });
+        } else {
+          // Redirect to appropriate dashboard based on actual role
+          const redirectPath = res.data.role === 'admin' ? '/admin' : '/user';
+          setAuthState({ loading: false, isAuthenticated: false, redirectPath });
+        }
       } catch (error) {
         console.error('ProtectedRoute error:', error.response?.data);
-        setIsAuthenticated(false);
+        localStorage.removeItem('token');
+        setAuthState({ loading: false, isAuthenticated: false, redirectPath: '/login' });
       }
     };
+    
     checkAuth();
-  }, [requiredRole]);
+  }, [requiredRole, allowGuest]);
 
-  if (isAuthenticated === null) return <div>Loading...</div>;
-  return isAuthenticated ? children : <Navigate to="/login" />;
+  if (authState.loading) return <div>Loading...</div>;
+  
+  if (authState.redirectPath) {
+    return <Navigate to={authState.redirectPath} replace />;
+  }
+
+  return authState.isAuthenticated ? children : null;
 }
 
 export default ProtectedRoute;

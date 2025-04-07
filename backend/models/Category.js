@@ -1,5 +1,15 @@
 import mongoose from "mongoose";
 
+const categoryTypeSchema = mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+  },
+  description: {
+    type: String,
+  },
+});
+
 const categorySchema = mongoose.Schema(
   {
     name: {
@@ -10,6 +20,7 @@ const categorySchema = mongoose.Schema(
     description: {
       type: String,
     },
+    types: [categoryTypeSchema], // Array of category types (subcategories)
   },
   {
     timestamps: true,

@@ -1,7 +1,7 @@
 import Category from "../models/Category.js";
 import asyncHandler from 'express-async-handler';
 
-// @desc    Get all categories
+// @desc    Get all categories with their types
 // @route   GET /api/categories
 // @access  Public
 const getCategories = async (req, res) => {
@@ -13,8 +13,11 @@ const getCategories = async (req, res) => {
   }
 };
 
-const createCategory = async (req, res) => {
-  const { name, description } = req.body;
+// @desc    Create a new category with optional types
+// @route   POST /api/categories/create
+// @access  Private/Admin
+const createCategory = asyncHandler(async (req, res) => {
+  const { name, description, types } = req.body;
 
   if (!name) {
     res.status(400);
@@ -22,7 +25,6 @@ const createCategory = async (req, res) => {
   }
 
   const categoryExists = await Category.findOne({ name });
-
   if (categoryExists) {
     res.status(400);
     throw new Error('Category already exists');
@@ -31,7 +33,8 @@ const createCategory = async (req, res) => {
   const category = await Category.create({
     name,
     description,
-    user: req.user._id, // Store who created the category
+    types: types || [], // Expecting types as an array of {name, description}
+    user: req.user._id,
   });
 
   if (category) {
@@ -40,13 +43,13 @@ const createCategory = async (req, res) => {
     res.status(400);
     throw new Error('Invalid category data');
   }
-};
+});
 
-// @desc    Update a category
+// @desc    Update a category (including its types)
 // @route   PUT /api/categories/:id
 // @access  Private/Admin
 const updateCategory = asyncHandler(async (req, res) => {
-  const { name, description } = req.body;
+  const { name, description, types } = req.body;
   const category = await Category.findById(req.params.id);
 
   if (!category) {
@@ -56,6 +59,7 @@ const updateCategory = asyncHandler(async (req, res) => {
 
   category.name = name || category.name;
   category.description = description || category.description;
+  if (types !== undefined) category.types = types; // Replace types if provided
 
   const updatedCategory = await category.save();
   res.json(updatedCategory);
@@ -74,4 +78,87 @@ const deleteCategory = asyncHandler(async (req, res) => {
   res.json({ message: 'Category deleted successfully' });
 });
 
-export { getCategories, createCategory, updateCategory, deleteCategory };
+// @desc    Add a type to an existing category
+// @route   POST /api/categories/:id/types
+// @access  Private/Admin
+const addCategoryType = asyncHandler(async (req, res) => {
+  const { name, description } = req.body;
+  const category = await Category.findById(req.params.id);
+
+  if (!category) {
+    res.status(404);
+    throw new Error('Category not found');
+  }
+
+  if (!name) {
+    res.status(400);
+    throw new Error('Type name is required');
+  }
+
+  // Check if type name already exists in this category
+  if (category.types.some(type => type.name === name)) {
+    res.status(400);
+    throw new Error('Type already exists in this category');
+  }
+
+  category.types.push({ name, description });
+  const updatedCategory = await category.save();
+  res.status(201).json(updatedCategory);
+});
+
+// @desc    Update a specific type in a category
+// @route   PUT /api/categories/:id/types/:typeId
+// @access  Private/Admin
+const updateCategoryType = asyncHandler(async (req, res) => {
+  const { name, description } = req.body;
+  const category = await Category.findById(req.params.id);
+
+  if (!category) {
+    res.status(404);
+    throw new Error('Category not found');
+  }
+
+  const type = category.types.id(req.params.typeId);
+  if (!type) {
+    res.status(404);
+    throw new Error('Type not found');
+  }
+
+  type.name = name || type.name;
+  type.description = description || type.description;
+
+  const updatedCategory = await category.save();
+  res.json(updatedCategory);
+});
+
+// @desc    Delete a specific type from a category
+// @route   DELETE /api/categories/:id/types/:typeId
+// @access  Private/Admin
+const deleteCategoryType = asyncHandler(async (req, res) => {
+  const category = await Category.findById(req.params.id);
+
+  if (!category) {
+    res.status(404);
+    throw new Error('Category not found');
+  }
+
+  const type = category.types.id(req.params.typeId);
+  if (!type) {
+    res.status(404);
+    throw new Error('Type not found');
+  }
+
+  category.types.pull(req.params.typeId);
+  const updatedCategory = await category.save();
+  res.json(updatedCategory);
+});
+
+export { 
+  getCategories, 
+  createCategory, 
+  updateCategory, 
+  deleteCategory,
+  addCategoryType,
+  updateCategoryType,
+  deleteCategoryType 
+};
