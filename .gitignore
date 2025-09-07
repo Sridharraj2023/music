@@ -52,3 +52,4 @@ lib/utlis/api_constants.dart
 .env.local
 .env.development
 .env.production
+!lib/utlis/api_constants.dart
