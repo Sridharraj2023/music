@@ -30,59 +30,59 @@ class SubscriptionController {
           soundscapeTracks: 'All',
           dynamicAudioFeatures: 'No',
           customTrackRequests: 'No',
-          priceId: "price_1RBxGh4QLgkRN4K3NjMCXJ1A"),
+          priceId: ApiConstants.priceId),
        ];
   }
 
   Future<void> createSubscription(
       BuildContext context, String pricePlan) async {
     try {
-      // Firebase User
+      // Get user email from SharedPreferences
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? email = prefs.getString('email');
+      String? token = prefs.getString('auth_token');
 
-      String secretKey = ApiConstants.secretKey;
-      String priceId = pricePlan;
-
-      final customerResponse = await http.post(
-        Uri.parse("https://api.stripe.com/v1/customers"),
-        headers: {
-          "Authorization": "Bearer $secretKey",
-          "Content-Type": "application/x-www-form-urlencoded"
-        },
-        body: {
-          "email": email!,
-        },
-      );
-      final customerData = jsonDecode(customerResponse.body);
-      if (customerResponse.statusCode != 200) {
-        throw Exception("Customer creation failed");
+      if (email == null || token == null) {
+        throw Exception("User not authenticated");
       }
 
-      // 2️⃣ Create a Subscription
-      final subscriptionResponse = await http.post(
-        Uri.parse("https://api.stripe.com/v1/subscriptions"),
+      // Call your backend API to create subscription
+      final response = await http.post(
+        Uri.parse("${ApiConstants.apiUrl}/subscriptions/create"),
         headers: {
-          "Authorization": "Bearer $secretKey",
-          "Content-Type": "application/x-www-form-urlencoded"
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json"
         },
-        body: {
-          "customer": customerData["id"],
-          "items[0][price]": priceId,
-          "payment_behavior": "default_incomplete",
-          "expand[]": "latest_invoice.payment_intent",
-        },
+        body: jsonEncode({
+          "priceId": pricePlan,
+        }),
       );
-      final subscriptionData = jsonDecode(subscriptionResponse.body);
-      if (subscriptionResponse.statusCode != 200) {
-        throw Exception("Subscription failed");
+
+      if (response.statusCode != 200) {
+        final errorData = jsonDecode(response.body);
+        throw Exception(errorData['message'] ?? "Subscription creation failed");
       }
 
-      // Handle mobile platforms
+      final subscriptionData = jsonDecode(response.body);
+      
+      // Debug: Print what backend returned
+      print("Backend response: $subscriptionData");
+      
+      // Check if subscription data exists
+      if (subscriptionData["subscription"] == null) {
+        throw Exception("No subscription data in response");
+      }
+      
+      // Check if clientSecret exists
+      if (subscriptionData["subscription"]["clientSecret"] == null) {
+        print("Available keys in subscription: ${subscriptionData["subscription"].keys}");
+        throw Exception("Subscription created but no payment intent was generated");
+      }
+      
+      // Handle mobile platforms with client secret from backend
       await Stripe.instance.initPaymentSheet(
         paymentSheetParameters: SetupPaymentSheetParameters(
-          paymentIntentClientSecret: subscriptionData["latest_invoice"]
-              ["payment_intent"]["client_secret"],
+          paymentIntentClientSecret: subscriptionData["subscription"]["clientSecret"],
           merchantDisplayName: 'Elevate',
         ),
       );
@@ -90,63 +90,53 @@ class SubscriptionController {
       await Stripe.instance.presentPaymentSheet();
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Subscription Successful")));
-      // Navigator.push(
-      //   context,
-      //   MaterialPageRoute(
-      //     builder: (context) => const HomePage(),
-      //   ),
-      // );
       Get.off(() => const HomePage());
     } catch (e) {
       print("Error: $e");
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Payment Failed")));
+          .showSnackBar(SnackBar(content: Text("Payment Failed: $e")));
     }
   }
 
   Future<Map<String, dynamic>?> checkSubscriptionStatus(String email) async {
     try {
-      // 2️⃣ Stripe Secret Key
-      String secretKey = ApiConstants.secretKey;
+      // Get auth token from SharedPreferences
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('auth_token');
 
-      // 3️⃣ Fetch Customer from Stripe using email
-      final customerResponse = await http.get(
-        Uri.parse("https://api.stripe.com/v1/customers?email=$email"),
+      if (token == null) {
+        return null; // User not authenticated
+      }
+
+      // Call your backend API to check subscription status
+      final response = await http.get(
+        Uri.parse("${ApiConstants.apiUrl}/subscriptions/status"),
         headers: {
-          "Authorization": "Bearer $secretKey",
-          "Content-Type": "application/x-www-form-urlencoded"
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json"
         },
       );
 
-      final customerData = jsonDecode(customerResponse.body);
-      if (customerResponse.statusCode != 200 || customerData['data'].isEmpty) {
-        return null; // User has no Stripe customer record
+      if (response.statusCode != 200) {
+        return null; // No subscription or error
       }
 
-      String customerId = customerData['data'][0]['id'];
-
-      // 4️⃣ Fetch Subscriptions for Customer
-      final subscriptionResponse = await http.get(
-        Uri.parse(
-            "https://api.stripe.com/v1/subscriptions?customer=$customerId"),
-        headers: {
-          "Authorization": "Bearer $secretKey",
-          "Content-Type": "application/x-www-form-urlencoded"
-        },
-      );
-
-      final subscriptionData = jsonDecode(subscriptionResponse.body);
-      if (subscriptionResponse.statusCode != 200 ||
-          subscriptionData['data'].isEmpty) {
-        return null; // No active subscription found
+      final subscriptionData = jsonDecode(response.body);
+      
+      if (subscriptionData['subscription'] == null) {
+        return null; // No subscription found
       }
 
-      final subscription = subscriptionData['data'][0];
+      final subscription = subscriptionData['subscription'];
       final isActive = subscription['status'] == 'active' ||
           subscription['status'] == 'trialing';
 
-      final expiryDate = DateTime.fromMillisecondsSinceEpoch(
-          (subscription['current_period_end'] as int) * 1000);
+      DateTime? expiryDate;
+      if (subscription['currentPeriodEnd'] != null) {
+        expiryDate = DateTime.fromMillisecondsSinceEpoch(
+            (subscription['currentPeriodEnd'] as int) * 1000);
+      }
+
       this.isActive = isActive;
       this.expiryDate = expiryDate;
       subscriptionStatus = subscription['status'];

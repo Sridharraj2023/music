@@ -113,7 +113,7 @@ class SubscriptionTiersScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 60), // Increased padding to clear bottom navigation
                 ],
               ),
             ),

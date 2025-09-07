@@ -12,7 +12,7 @@ class GenreButton extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
       decoration: BoxDecoration(
-        color: const Color(0xFF7047EA),
+        color: const Color(0xFFCABBF7),
         borderRadius: BorderRadius.circular(30),
       ),
       child: Row(
