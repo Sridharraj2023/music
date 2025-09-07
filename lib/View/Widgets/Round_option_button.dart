@@ -16,7 +16,7 @@ class RoundedOptionButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 10),
+        margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
         width: MediaQuery.of(context).size.width * 0.42, // Adjust width
         decoration: BoxDecoration(

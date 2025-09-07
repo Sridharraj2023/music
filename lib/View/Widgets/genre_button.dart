@@ -12,17 +12,17 @@ class GenreButton extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
       decoration: BoxDecoration(
-        color: const Color(0xFFCABBF7),
+        color: const Color(0xFFEDE6FF),
         borderRadius: BorderRadius.circular(30),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          const Icon(LucideIcons.playCircle, color: Colors.white, size: 30),
+          const Icon(LucideIcons.playCircle, color: Colors.black, size: 30),
 SizedBox(width: 20,),
           Text(
             label,
-            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w500),
+            style: const TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w500),
           ),
         ],
       ),
