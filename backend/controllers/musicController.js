@@ -100,7 +100,7 @@ const getMusic = asyncHandler(async (req, res) => {
           name: music.category.name,
           description: music.category.description,
         } : null, // Handle null category
-        categoryType: categoryTypeDetails || null,
+        categoryType: categoryTypeDetails,
       };
     });
 
@@ -116,6 +116,7 @@ const getMusic = asyncHandler(async (req, res) => {
 // @route   POST /api/music/create
 // @access  Private/Admin
 const createMusic = asyncHandler(async (req, res) => {
+  console.log('Request Body:', req.body);
   console.log('Files:', req.files);
   const { title, artist, category, categoryType, duration, releaseDate } = req.body;
   const audioFile = req.files?.file?.[0];
@@ -126,6 +127,7 @@ const createMusic = asyncHandler(async (req, res) => {
   if (!title) missingFields.push('title');
   if (!artist) missingFields.push('artist');
   if (!category) missingFields.push('category');
+  if (!categoryType) missingFields.push('categoryType'); // Add this
   if (!audioFile) missingFields.push('file');
   if (!duration) missingFields.push('duration');
   if (!releaseDate) missingFields.push('releaseDate');
@@ -142,19 +144,18 @@ const createMusic = asyncHandler(async (req, res) => {
       title,
       artist,
       category: new mongoose.Types.ObjectId(category),
+      categoryType: new mongoose.Types.ObjectId(categoryType), // Always set since validated
       fileUrl: `/uploads/${audioFile.filename}`,
       duration: Number(duration),
       releaseDate: new Date(releaseDate),
       user: req.user._id,
     };
 
-    if (categoryType) {
-      musicData.categoryType = new mongoose.Types.ObjectId(categoryType);
-    }
     if (thumbnailFile) {
       musicData.thumbnailUrl = `/uploads/${thumbnailFile.filename}`;
     }
 
+    console.log('Creating music with data:', musicData); // Log before creation
     const music = await Music.create(musicData);
     const populatedMusic = await Music.findById(music._id).populate('category', 'name description');
     res.status(201).json(populatedMusic);

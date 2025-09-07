@@ -66,6 +66,7 @@ body {
   background: rgba(255, 255, 255, 0.1);
 }
 
+
 /* ================ Common Components ================ */
 .card {
   background: white;
@@ -74,6 +75,7 @@ body {
   padding: 2rem;
   margin-bottom: 2rem;
 }
+
 
 .card-title {
   margin-top: 0;
@@ -319,6 +321,13 @@ body {
   height: 16px;
 }
 
+.admin-logo-container {
+  display: flex;
+  align-items: center;
+  text-decoration: none !important; /* Remove underline from Link */
+  color: inherit; /* Inherit color from parent */
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .grid-layout {
@@ -328,4 +337,16 @@ body {
   .music-thumbnail {
     height: 250px;
   }
+}
+
+.admin-logo-container {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.admin-logo {
+  height: 40px; /* Adjust this value based on your logo's size */
+  margin-right: 10px; /* Space between the logo and "Elevate" text */
+  text-decoration: none;
 }

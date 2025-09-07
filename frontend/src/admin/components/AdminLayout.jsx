@@ -1,5 +1,6 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import logo from '../../assets/logo.png';
 import '../admin.css';
 
 function AdminLayout() {
@@ -20,7 +21,10 @@ function AdminLayout() {
   return (
     <div>
       <nav className="admin-nav">
-        <h1 className="admin-nav-brand">Admin Panel</h1>
+        <Link to="/admin" className="admin-logo-container">
+          <img src={logo} alt="Logo" className="admin-logo" />
+          <h1 className="admin-nav-brand">Elevate</h1>
+        </Link>
         <ul className="admin-nav-list">
           <li><Link to="/admin" className="admin-nav-link">Dashboard</Link></li>
           <li>

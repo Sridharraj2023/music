@@ -17,10 +17,12 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 }
+  limits: { 
+    fileSize: 500 * 1024 * 1024, // 500MB limit
+    files: 2 // Max 2 files (audio + thumbnail)
+  }
 }).fields([
   { name: 'file', maxCount: 1 },
   { name: 'thumbnail', maxCount: 1 }
 ]);
-
 export default upload; // Change to default export

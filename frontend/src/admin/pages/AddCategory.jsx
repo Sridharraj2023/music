@@ -1,29 +1,26 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import '../admin.css';
 
 function AddCategory() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [types, setTypes] = useState([{ name: '', description: '' }]); // Array for category types
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [types, setTypes] = useState([{ name: '', description: '' }]);
   const navigate = useNavigate();
 
-  // Handle changes to category type fields
   const handleTypeChange = (index, field, value) => {
     const updatedTypes = [...types];
     updatedTypes[index][field] = value;
     setTypes(updatedTypes);
   };
 
-  // Add a new type input
   const addType = () => {
     setTypes([...types, { name: '', description: '' }]);
   };
 
-  // Remove a type input
   const removeType = (index) => {
     if (types.length > 1) {
       setTypes(types.filter((_, i) => i !== index));
@@ -32,13 +29,36 @@ function AddCategory() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
 
-    // Validate that all types have names
-    const invalidTypes = types.some(type => !type.name.trim());
-    if (!name.trim() || invalidTypes) {
-      setError('Category name and all type names are required');
+    // Validation
+    let hasError = false;
+
+    // Check category name
+    if (!name.trim()) {
+      toast.error('Category name is required');
+      hasError = true;
+    }
+
+    // Check category description
+    if (!description.trim()) {
+      toast.error('Category description is required');
+      hasError = true;
+    }
+
+    // Check category types
+    types.forEach((type, index) => {
+      if (!type.name.trim()) {
+        toast.error(`Type name is required for type ${index + 1}`);
+        hasError = true;
+      }
+      if (!type.description.trim()) {
+        toast.error(`Type description is required for type ${index + 1}`);
+        hasError = true;
+      }
+    });
+
+    // Stop submission if there are errors
+    if (hasError) {
       return;
     }
 
@@ -49,7 +69,7 @@ function AddCategory() {
         { 
           name, 
           description, 
-          types: types.filter(type => type.name.trim()) // Only send types with names
+          types: types.filter(type => type.name.trim() && type.description.trim())
         },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -57,20 +77,34 @@ function AddCategory() {
         }
       );
 
-      setSuccess('Category added successfully!');
+      toast.success('Category added successfully!');
       setName('');
       setDescription('');
-      setTypes([{ name: '', description: '' }]); // Reset to one empty type
+      setTypes([{ name: '', description: '' }]);
+
+      // Redirect to ViewCategories with query params including the new category ID
+      setTimeout(() => {
+        navigate(`/admin/view-categories?newCategory=true&categoryId=${res.data._id}`);
+      }, 1000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to add category');
+      toast.error(err.response?.data?.message || 'Failed to add category');
     }
   };
 
   return (
     <div className="card">
       <h2 className="card-title">Add Category</h2>
-      {error && <div className="error-message">{error}</div>}
-      {success && <div className="success-message">{success}</div>}
+      <ToastContainer 
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
       
       <form onSubmit={handleSubmit}>
         <div className="form-group">
@@ -80,6 +114,7 @@ function AddCategory() {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            placeholder="Enter category name"
             required
           />
         </div>
@@ -90,7 +125,9 @@ function AddCategory() {
             className="form-control"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
+            placeholder="Enter category description"
             rows="4"
+            required
           />
         </div>
 
@@ -103,16 +140,16 @@ function AddCategory() {
                 type="text"
                 value={type.name}
                 onChange={(e) => handleTypeChange(index, 'name', e.target.value)}
-                placeholder="Type Name"
+                placeholder={`Type Name ${index + 1}`}
                 required
-                style={{ marginBottom: '5px' }}
               />
               <textarea
                 className="form-control"
                 value={type.description}
                 onChange={(e) => handleTypeChange(index, 'description', e.target.value)}
-                placeholder="Type Description"
+                placeholder={`Type Description ${index + 1}`}
                 rows="2"
+                required
               />
               {types.length > 1 && (
                 <button
