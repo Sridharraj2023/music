@@ -22,6 +22,28 @@ const userSchema = mongoose.Schema(
       enum: ['user', 'admin', 'moderator'], // Define allowed roles
       default: 'user', // Default role is 'user'
     },
+    stripeCustomerId: {
+      type: String,
+      default: null,
+    },
+    subscription: {
+      id: {
+        type: String,
+        default: null,
+      },
+      status: {
+        type: String,
+        default: null,
+      },
+      currentPeriodEnd: {
+        type: Date,
+        default: null,
+      },
+      cancelAtPeriodEnd: {
+        type: Boolean,
+        default: false,
+      },
+    },
   },
   {
     timestamps: true,

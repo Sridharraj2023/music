@@ -3,6 +3,183 @@ import User from '../models/userModel.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
+export const handleWebhook = async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      sig,
+      endpointSecret
+    );
+  } catch (err) {
+    console.error(`Webhook signature verification failed: ${err.message}`);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  // Handle the event
+  switch (event.type) {
+    case 'payment_intent.succeeded':
+      const paymentIntent = event.data.object;
+      console.log('PaymentIntent was successful!', paymentIntent.id);
+      break;
+      
+    case 'payment_intent.payment_failed':
+      const paymentFailed = event.data.object;
+      console.log('Payment failed:', paymentFailed.id);
+      // Handle failed payment
+      break;
+      
+    case 'customer.subscription.created':
+      const subscriptionCreated = event.data.object;
+      console.log('Subscription created:', subscriptionCreated.id);
+      await User.findOneAndUpdate(
+        { stripeCustomerId: subscriptionCreated.customer },
+        { 
+          'subscription.status': subscriptionCreated.status,
+          'subscription.currentPeriodEnd': new Date(subscriptionCreated.current_period_end * 1000)
+        }
+      );
+      break;
+      
+    case 'customer.subscription.updated':
+      const subscriptionUpdated = event.data.object;
+      console.log('Subscription updated:', subscriptionUpdated.id);
+      await User.findOneAndUpdate(
+        { stripeCustomerId: subscriptionUpdated.customer },
+        { 
+          'subscription.status': subscriptionUpdated.status,
+          'subscription.currentPeriodEnd': new Date(subscriptionUpdated.current_period_end * 1000)
+        }
+      );
+      break;
+      
+    case 'customer.subscription.deleted':
+      const subscriptionDeleted = event.data.object;
+      console.log('Subscription deleted:', subscriptionDeleted.id);
+      await User.findOneAndUpdate(
+        { stripeCustomerId: subscriptionDeleted.customer },
+        { 
+          'subscription.status': 'canceled',
+          'subscription.currentPeriodEnd': null
+        }
+      );
+      break;
+      
+    case 'invoice.payment_succeeded':
+      const invoicePaid = event.data.object;
+      console.log('Invoice paid:', invoicePaid.id);
+      // Update user subscription status to active
+      await User.findOneAndUpdate(
+        { stripeCustomerId: invoicePaid.customer },
+        { 
+          'subscription.status': 'active',
+          'subscription.currentPeriodEnd': new Date(invoicePaid.period_end * 1000)
+        }
+      );
+      break;
+      
+    case 'invoice.payment_failed':
+      const invoiceFailed = event.data.object;
+      console.log('Invoice payment failed:', invoiceFailed.id);
+      // Update user subscription status to past_due
+      await User.findOneAndUpdate(
+        { stripeCustomerId: invoiceFailed.customer },
+        { 
+          'subscription.status': 'past_due'
+        }
+      );
+      break;
+      
+    default:
+      console.log(`Unhandled event type ${event.type}`);
+  }
+
+  // Return a 200 response to acknowledge receipt of the event
+  res.json({ received: true });
+};
+
+// GET /subscriptions/status - Get current subscription status
+export const getSubscriptionStatus = async (req, res) => {
+  try {
+    const userId = req.user && req.user._id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user || !user.subscription || !user.subscription.id) {
+      return res.json({
+        subscription: null
+      });
+    }
+
+    // Get latest subscription data from Stripe
+    const subscription = await stripe.subscriptions.retrieve(user.subscription.id);
+
+    return res.json({
+      subscription: {
+        id: subscription.id,
+        status: subscription.status,
+        currentPeriodStart: subscription.current_period_start,
+        currentPeriodEnd: subscription.current_period_end,
+        cancelAtPeriodEnd: subscription.cancel_at_period_end,
+        plan: subscription.items.data[0]?.price?.id
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching subscription status:', error);
+    return res.status(500).json({ 
+      message: 'Failed to fetch subscription status',
+      error: error.message 
+    });
+  }
+};
+
+// POST /subscriptions/cancel - Cancel subscription at period end
+export const cancelSubscription = async (req, res) => {
+  try {
+    const userId = req.user && req.user._id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user || !user.subscription || !user.subscription.id) {
+      return res.status(404).json({ 
+        message: 'No active subscription found' 
+      });
+    }
+
+    // Cancel subscription at period end
+    const subscription = await stripe.subscriptions.update(user.subscription.id, {
+      cancel_at_period_end: true
+    });
+
+    // Update user subscription status
+    user.subscription.status = subscription.status;
+    user.subscription.cancelAtPeriodEnd = subscription.cancel_at_period_end;
+    await user.save();
+
+    return res.json({
+      message: 'Subscription will be canceled at the end of the current period',
+      subscription: {
+        id: subscription.id,
+        status: subscription.status,
+        cancelAtPeriodEnd: subscription.cancel_at_period_end
+      }
+    });
+  } catch (error) {
+    console.error('Error canceling subscription:', error);
+    return res.status(500).json({ 
+      message: 'Failed to cancel subscription',
+      error: error.message 
+    });
+  }
+};
+
 // POST /subscriptions/create
 export const createSubscription = async (req, res) => {
   try {
