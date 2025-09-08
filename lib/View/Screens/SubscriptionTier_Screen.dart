@@ -1,10 +1,12 @@
 // views/screens/subscription_tiers_screen.dart
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../Controller/Subscription_Controller.dart';
 import '../../Model/Subscription_Tiers.dart';
 import '../widgets/gradient_container.dart';
 import '../widgets/subscription_tier_card.dart';
 import 'Homepage_Screen.dart';
+import 'Login_Screen.dart';
 
 class SubscriptionTiersScreen extends StatelessWidget {
   final SubscriptionController _subscriptionController =
@@ -81,9 +83,21 @@ class SubscriptionTiersScreen extends StatelessWidget {
                     height: 50,
                     margin: const EdgeInsets.symmetric(horizontal: 20),
                     child: ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
                         if (tiers.isNotEmpty) {
-                          _subscriptionController.createSubscription(context, tiers[0].priceId);
+                          try {
+                            await _subscriptionController.createSubscription(context, tiers[0].priceId);
+                          } catch (e) {
+                            if (e.toString().contains('Session expired')) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Session expired. Redirecting to login...')),
+                              );
+                              Future.delayed(const Duration(seconds: 1), () {
+                                Get.offAll(() => LoginScreen());
+                              });
+                            }
+                            // Other errors are already handled in createSubscription
+                          }
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -155,7 +169,7 @@ class SubscriptionTiersScreen extends StatelessWidget {
     return rows;
   }
 
-  void _onTapTier(SubscriptionTier tier, BuildContext context) {
+  void _onTapTier(SubscriptionTier tier, BuildContext context) async {
     // Handle the tap event for the tier
     // For example, navigate to a detailed view or show a dialog
     if (tier.title == 'Free') {
@@ -166,7 +180,19 @@ class SubscriptionTiersScreen extends StatelessWidget {
         ),
       );
     } else {
-      _subscriptionController.createSubscription(context, tier.priceId);
+      try {
+        await _subscriptionController.createSubscription(context, tier.priceId);
+      } catch (e) {
+        if (e.toString().contains('Session expired')) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Session expired. Redirecting to login...')),
+          );
+          Future.delayed(const Duration(seconds: 1), () {
+            Get.offAll(() => LoginScreen());
+          });
+        }
+        // Other errors are already handled in createSubscription
+      }
     }
     print('Tapped on ${tier.title}');
   }

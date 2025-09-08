@@ -58,7 +58,14 @@ class SubscriptionController {
         }),
       );
 
-      if (response.statusCode != 200) {
+      if (response.statusCode == 200) {
+        // Success - continue with existing logic
+      } else if (response.statusCode == 401) {
+        // Token expired or invalid - clear it and redirect to login
+        await prefs.remove('auth_token');
+        await prefs.remove('email');
+        throw Exception("Session expired. Please login again.");
+      } else {
         final errorData = jsonDecode(response.body);
         throw Exception(errorData['message'] ?? "Subscription creation failed");
       }
@@ -117,8 +124,15 @@ class SubscriptionController {
         },
       );
 
-      if (response.statusCode != 200) {
-        return null; // No subscription or error
+      if (response.statusCode == 200) {
+        // Success - continue with existing logic
+      } else if (response.statusCode == 401) {
+        // Token expired or invalid - clear it
+        await prefs.remove('auth_token');
+        await prefs.remove('email');
+        return null; // Return null to trigger login
+      } else {
+        return null; // No subscription or other error
       }
 
       final subscriptionData = jsonDecode(response.body);
@@ -148,6 +162,73 @@ class SubscriptionController {
     } catch (e) {
       print("Error fetching subscription: $e");
       return null;
+    }
+  }
+
+  // New: Fetch full subscription status payload for UI needs
+  // This is additive and does not change existing behavior. Use when you need
+  // the raw response that includes status, currentPeriodEnd, etc.
+  Future<Map<String, dynamic>> getSubscriptionStatus() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('auth_token');
+
+      if (token == null) {
+        throw Exception("User not authenticated");
+      }
+
+      final response = await http.get(
+        Uri.parse("${ApiConstants.apiUrl}/subscriptions/status"),
+        headers: {
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      } else if (response.statusCode == 401) {
+        // Token expired or invalid - clear it and redirect to login
+        await prefs.remove('auth_token');
+        await prefs.remove('email');
+        throw Exception("Session expired. Please login again.");
+      }
+
+      throw Exception('Failed to load subscription status');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // New: Cancel subscription via backend
+  // Safe additive method that calls POST /subscriptions/cancel
+  Future<void> cancelSubscription() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('auth_token');
+
+      if (token == null) {
+        throw Exception("User not authenticated");
+      }
+
+      final response = await http.post(
+        Uri.parse("${ApiConstants.apiUrl}/subscriptions/cancel"),
+        headers: {
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return; // Success
+      } else if (response.statusCode == 401) {
+        // Token expired or invalid - clear it
+        await prefs.remove('auth_token');
+        await prefs.remove('email');
+        throw Exception("Session expired. Please login again.");
+      }
+
+      throw Exception('Failed to cancel subscription');
+    } catch (e) {
+      rethrow;
     }
   }
 }
