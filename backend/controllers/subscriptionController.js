@@ -138,6 +138,54 @@ export const getSubscriptionStatus = async (req, res) => {
   }
 };
 
+// POST /subscriptions/confirm - Manually confirm payment and activate subscription
+export const confirmPayment = async (req, res) => {
+  try {
+    const userId = req.user && req.user._id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user || !user.subscription || !user.subscription.id) {
+      return res.status(404).json({ 
+        message: 'No subscription found' 
+      });
+    }
+
+    // Get subscription from Stripe
+    const subscription = await stripe.subscriptions.retrieve(user.subscription.id);
+    
+    // Check if payment was successful
+    if (subscription.status === 'active' || subscription.status === 'trialing') {
+      // Update user subscription status
+      user.subscription.status = subscription.status;
+      user.subscription.currentPeriodEnd = new Date(subscription.current_period_end * 1000);
+      await user.save();
+
+      return res.json({
+        message: 'Subscription confirmed and activated',
+        subscription: {
+          id: subscription.id,
+          status: subscription.status,
+          currentPeriodEnd: subscription.current_period_end
+        }
+      });
+    } else {
+      return res.status(400).json({
+        message: 'Subscription is not active yet',
+        status: subscription.status
+      });
+    }
+  } catch (error) {
+    console.error('Error confirming payment:', error);
+    return res.status(500).json({ 
+      message: 'Failed to confirm payment',
+      error: error.message 
+    });
+  }
+};
+
 // POST /subscriptions/cancel - Cancel subscription at period end
 export const cancelSubscription = async (req, res) => {
   try {
@@ -224,7 +272,8 @@ export const createSubscription = async (req, res) => {
           payment_method_types: ['card'],
           save_default_payment_method: 'on_subscription'
         },
-        expand: ['latest_invoice.payment_intent']
+        expand: ['latest_invoice.payment_intent'],
+        collection_method: 'charge_automatically'
       });
 
       console.log('Subscription created:', {
@@ -233,6 +282,13 @@ export const createSubscription = async (req, res) => {
         latest_invoice: subscription.latest_invoice,
         payment_intent: subscription.latest_invoice?.payment_intent
       });
+      
+      // Debug: Check if payment intent exists
+      if (subscription.latest_invoice?.payment_intent) {
+        console.log('Payment intent found:', subscription.latest_invoice.payment_intent);
+      } else {
+        console.log('No payment intent in subscription.latest_invoice');
+      }
 
       // Get the client secret from the subscription's payment intent
       let clientSecret = subscription.latest_invoice?.payment_intent?.client_secret;
@@ -262,6 +318,7 @@ export const createSubscription = async (req, res) => {
               invoice_id: invoice.id
             }
           });
+          console.log('Payment intent created:', paymentIntent);
           clientSecret = paymentIntent.client_secret;
         }
       }
@@ -284,11 +341,15 @@ export const createSubscription = async (req, res) => {
       await user.save();
 
       // Return the client secret for the client to complete the payment
-      return res.json({
+      const responseData = {
         subscription: {
           clientSecret: clientSecret
         }
-      });
+      };
+      
+      console.log('Returning to client:', responseData);
+      
+      return res.json(responseData);
     } catch (error) {
       console.error('Stripe subscription error:', {
         message: error.message,
