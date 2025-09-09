@@ -48,7 +48,7 @@ class SubscriptionController {
 
       // Call your backend API to create subscription
       final response = await http.post(
-        Uri.parse("${ApiConstants.apiUrl}/subscriptions/create"),
+        Uri.parse("${ApiConstants.resolvedApiUrl}/subscriptions/create"),
         headers: {
           "Authorization": "Bearer $token",
           "Content-Type": "application/json"
@@ -67,6 +67,7 @@ class SubscriptionController {
         throw Exception("Session expired. Please login again.");
       } else {
         final errorData = jsonDecode(response.body);
+        print("Subscription creation error: ${errorData}");
         throw Exception(errorData['message'] ?? "Subscription creation failed");
       }
 
@@ -83,25 +84,66 @@ class SubscriptionController {
       // Check if clientSecret exists
       if (subscriptionData["subscription"]["clientSecret"] == null) {
         print("Available keys in subscription: ${subscriptionData["subscription"].keys}");
-        throw Exception("Subscription created but no payment intent was generated");
+        print("Full subscription data: ${subscriptionData["subscription"]}");
+        throw Exception("Subscription created but no payment intent was generated. Please try again.");
       }
       
       // Handle mobile platforms with client secret from backend
+      print("Initializing payment sheet with client secret: ${subscriptionData["subscription"]["clientSecret"]}");
+      
       await Stripe.instance.initPaymentSheet(
         paymentSheetParameters: SetupPaymentSheetParameters(
           paymentIntentClientSecret: subscriptionData["subscription"]["clientSecret"],
           merchantDisplayName: 'Elevate',
+          style: ThemeMode.system,
+          allowsDelayedPaymentMethods: true,
         ),
       );
+      
+      print("Payment sheet initialized successfully");
 
+      print("Payment sheet initialized, presenting...");
       await Stripe.instance.presentPaymentSheet();
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Subscription Successful")));
-      Get.off(() => const HomePage());
+      print("Payment sheet completed");
+      
+      // After successful payment, manually confirm the payment
+      print("Confirming payment...");
+      final paymentConfirmed = await confirmPayment();
+      
+      if (paymentConfirmed) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Subscription Successful!")));
+        Get.off(() => const HomePage());
+      } else {
+        // Try checking status one more time
+        await Future.delayed(Duration(seconds: 1));
+        final statusCheck = await checkSubscriptionStatus(email!);
+        if (statusCheck != null && statusCheck['isActive'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Subscription Successful!")));
+          Get.off(() => const HomePage());
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Payment completed but subscription not activated. Please try again.")));
+        }
+      }
     } catch (e) {
       print("Error: $e");
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Payment Failed: $e")));
+      
+      // Handle specific Stripe errors
+      if (e.toString().contains('PaymentSheetError')) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Payment was cancelled or failed. Please try again."))
+        );
+      } else if (e.toString().contains('PaymentIntent')) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Payment processing error. Please try again."))
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Payment Failed: $e"))
+        );
+      }
     }
   }
 
@@ -117,7 +159,7 @@ class SubscriptionController {
 
       // Call your backend API to check subscription status
       final response = await http.get(
-        Uri.parse("${ApiConstants.apiUrl}/subscriptions/status"),
+        Uri.parse("${ApiConstants.resolvedApiUrl}/subscriptions/status"),
         headers: {
           "Authorization": "Bearer $token",
           "Content-Type": "application/json"
@@ -142,8 +184,20 @@ class SubscriptionController {
       }
 
       final subscription = subscriptionData['subscription'];
-      final isActive = subscription['status'] == 'active' ||
-          subscription['status'] == 'trialing';
+      final status = subscription['status'];
+      
+      // Only consider 'active' and 'trialing' as valid subscription statuses
+      // 'incomplete' means payment hasn't been completed yet
+      final isActive = status == 'active' || status == 'trialing';
+      
+      // Debug: Log subscription status for troubleshooting
+      print("Subscription status: $status");
+      print("Is active: $isActive");
+      
+      // If subscription is incomplete, it means payment wasn't completed
+      if (status == 'incomplete') {
+        print("Warning: Subscription is incomplete - payment not completed");
+      }
 
       DateTime? expiryDate;
       if (subscription['currentPeriodEnd'] != null) {
@@ -178,7 +232,7 @@ class SubscriptionController {
       }
 
       final response = await http.get(
-        Uri.parse("${ApiConstants.apiUrl}/subscriptions/status"),
+        Uri.parse("${ApiConstants.resolvedApiUrl}/subscriptions/status"),
         headers: {
           "Authorization": "Bearer $token",
         },
@@ -199,6 +253,43 @@ class SubscriptionController {
     }
   }
 
+  // New: Confirm payment and activate subscription
+  // This manually checks Stripe and updates the subscription status
+  Future<bool> confirmPayment() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('auth_token');
+
+      if (token == null) {
+        throw Exception("User not authenticated");
+      }
+
+      final response = await http.post(
+        Uri.parse("${ApiConstants.resolvedApiUrl}/subscriptions/confirm"),
+        headers: {
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        print("Payment confirmed: ${data['message']}");
+        return true;
+      } else if (response.statusCode == 401) {
+        await prefs.remove('auth_token');
+        await prefs.remove('email');
+        throw Exception("Session expired. Please login again.");
+      } else {
+        final errorData = jsonDecode(response.body);
+        print("Payment confirmation failed: ${errorData['message']}");
+        return false;
+      }
+    } catch (e) {
+      print("Error confirming payment: $e");
+      return false;
+    }
+  }
+
   // New: Cancel subscription via backend
   // Safe additive method that calls POST /subscriptions/cancel
   Future<void> cancelSubscription() async {
@@ -211,7 +302,7 @@ class SubscriptionController {
       }
 
       final response = await http.post(
-        Uri.parse("${ApiConstants.apiUrl}/subscriptions/cancel"),
+        Uri.parse("${ApiConstants.resolvedApiUrl}/subscriptions/cancel"),
         headers: {
           "Authorization": "Bearer $token",
         },

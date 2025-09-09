@@ -14,6 +14,7 @@ import 'package:elevate/View/Widgets/Music_List.dart';
 import 'package:elevate/View/Widgets/Search_Bar.dart';
 import 'package:elevate/View/Widgets/Tab_Bar.dart';
 import 'package:elevate/View/Widgets/audio_player_widget.dart';
+import 'package:elevate/View/Widgets/subscription_status.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
@@ -117,6 +118,37 @@ class _HomePageState extends State<HomePage>
                     "$email",
                     style: TextStyle(color: Colors.white, fontSize: 14),
                   ),
+                ],
+              ),
+            ),
+            // Subscription Status Section
+            Container(
+              margin: EdgeInsets.all(16.0),
+              padding: EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.subscriptions, color: Color(0xFF6F41F3), size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        "Subscription Status",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 12),
+                  SubscriptionStatus(),
                 ],
               ),
             ),

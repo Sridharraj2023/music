@@ -13,7 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthController {
   Future<void> signUp(User user, BuildContext context) async {
-    String baseUrl = "${ApiConstants.apiUrl}/users/";
+    String baseUrl = "${ApiConstants.resolvedApiUrl}/users/";
     var headers = {'Content-Type': 'application/json'};
 
     log(user.password);
@@ -59,7 +59,7 @@ class AuthController {
     log("Email $email");
     log("Password $password");
     String baseUrl =
-        "${ApiConstants.apiUrl}/users/auth"; // Adjust based on API route
+        "${ApiConstants.resolvedApiUrl}/users/auth"; // Adjust based on API route
     var headers = {'Content-Type': 'application/json'};
 
     try {

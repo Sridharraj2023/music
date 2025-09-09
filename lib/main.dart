@@ -115,11 +115,21 @@ void main() async {
   // Load environment variables
   await dotenv.load(fileName: ".env");
 
+  // Debug: Print loaded environment variables
+  ApiConstants.printEnvVars();
+  print("Resolved API URL: ${ApiConstants.apiUrl}");
+  print("Resolved Stripe Publishable Key: ${ApiConstants.publishKey}");
+  
+  // For testing, use local server (comment out for production)
+  ApiConstants.useLocalServer();
+  print("Using local server for testing: ${ApiConstants.resolvedApiUrl}");
+
   // Inject GetX controller
   Get.put(BottomBarController());
 
   // Stripe publishable key
   Stripe.publishableKey = ApiConstants.publishKey;
+  print("Stripe initialized with key: ${Stripe.publishableKey}");
 
   runApp(const MyApp());
 }
