@@ -68,7 +68,23 @@ class SubscriptionController {
       } else {
         final errorData = jsonDecode(response.body);
         print("Subscription creation error: ${errorData}");
-        throw Exception(errorData['message'] ?? "Subscription creation failed");
+        
+        // Handle specific error messages
+        String errorMessage = errorData['message'] ?? "Subscription creation failed";
+        if (errorMessage.contains('Payment method configuration error') || 
+            errorMessage.contains('Payment setup error')) {
+          errorMessage = "Payment setup error. Please try again.";
+        } else if (errorMessage.contains('Invalid subscription plan')) {
+          errorMessage = "Subscription plan error. Please contact support.";
+        } else if (errorMessage.contains('Customer account error')) {
+          errorMessage = "Account error. Please try again.";
+        } else if (errorMessage.contains('Invoice processing error')) {
+          errorMessage = "Payment processing error. Please try again.";
+        } else if (errorMessage.contains('Payment method attachment error')) {
+          errorMessage = "Payment method attachment error. Please try again.";
+        }
+        
+        throw Exception(errorMessage);
       }
 
       final subscriptionData = jsonDecode(response.body);
@@ -88,6 +104,11 @@ class SubscriptionController {
         throw Exception("Subscription created but no payment intent was generated. Please try again.");
       }
       
+      // Extract payment intent ID from client secret
+      String clientSecret = subscriptionData["subscription"]["clientSecret"];
+      String paymentIntentId = clientSecret.split('_secret_')[0];
+      print("Payment intent ID: $paymentIntentId");
+      
       // Handle mobile platforms with client secret from backend
       print("Initializing payment sheet with client secret: ${subscriptionData["subscription"]["clientSecret"]}");
       
@@ -106,25 +127,52 @@ class SubscriptionController {
       await Stripe.instance.presentPaymentSheet();
       print("Payment sheet completed");
       
-      // After successful payment, manually confirm the payment
-      print("Confirming payment...");
-      final paymentConfirmed = await confirmPayment();
+      // After successful payment, update subscription with payment method
+      print("Updating subscription with payment method...");
+      final paymentConfirmed = await updateSubscriptionPaymentMethod(paymentIntentId);
       
       if (paymentConfirmed) {
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Subscription Successful!")));
         Get.off(() => const HomePage());
       } else {
-        // Try checking status one more time
-        await Future.delayed(Duration(seconds: 1));
-        final statusCheck = await checkSubscriptionStatus(email!);
-        if (statusCheck != null && statusCheck['isActive'] == true) {
+        // Try checking status with more retries and longer delays
+        bool subscriptionActive = false;
+        for (int i = 0; i < 5; i++) {
+          await Future.delayed(Duration(seconds: 3));
+          final statusCheck = await checkSubscriptionStatus(email!);
+          if (statusCheck != null && statusCheck['isActive'] == true) {
+            subscriptionActive = true;
+            break;
+          }
+          print("Retry ${i + 1}: Subscription not active yet, checking again...");
+        }
+        
+        if (subscriptionActive) {
           ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text("Subscription Successful!")));
           Get.off(() => const HomePage());
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Payment completed but subscription not activated. Please try again.")));
+          // Try the fix-status endpoint as fallback
+          print("Trying fix-status endpoint as fallback...");
+          final fixResult = await fixSubscriptionStatus();
+          if (fixResult) {
+            ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Subscription Successful!")));
+            Get.off(() => const HomePage());
+          } else {
+            // Try one more time with the confirm payment endpoint
+            print("Trying confirm payment endpoint as final fallback...");
+            final confirmResult = await confirmPayment();
+            if (confirmResult) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Subscription Successful!")));
+              Get.off(() => const HomePage());
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Payment completed but subscription activation is delayed. Please refresh the app or contact support.")));
+            }
+          }
         }
       }
     } catch (e) {
@@ -139,9 +187,39 @@ class SubscriptionController {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Payment processing error. Please try again."))
         );
+      } else if (e.toString().contains('Session expired')) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Session expired. Please login again."))
+        );
+        // Redirect to login screen
+        Get.offAllNamed('/login');
+      } else if (e.toString().contains('Payment setup error')) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Payment setup error. Please try again."))
+        );
+      } else if (e.toString().contains('Subscription plan error')) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Subscription plan error. Please contact support."))
+        );
+      } else if (e.toString().contains('Account error')) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Account error. Please try again."))
+        );
+      } else if (e.toString().contains('Payment processing error')) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Payment processing error. Please try again."))
+        );
+      } else if (e.toString().contains('Payment method update failed')) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Payment method update failed. Please try again."))
+        );
+      } else if (e.toString().contains('Payment method attachment error')) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Payment method attachment error. Please try again."))
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Payment Failed: $e"))
+          SnackBar(content: Text("Payment Failed: ${e.toString().replaceAll('Exception: ', '')}"))
         );
       }
     }
@@ -253,6 +331,109 @@ class SubscriptionController {
     }
   }
 
+  // New: Update subscription with payment method from payment intent
+  // This updates the subscription with the payment method after successful payment
+  Future<bool> updateSubscriptionPaymentMethod(String paymentIntentId) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('auth_token');
+
+      if (token == null) {
+        throw Exception("User not authenticated");
+      }
+
+      final response = await http.post(
+        Uri.parse("${ApiConstants.resolvedApiUrl}/subscriptions/update-payment-method"),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json"
+        },
+        body: jsonEncode({
+          "paymentIntentId": paymentIntentId
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        print("Subscription updated with payment method: ${data['message']}");
+        
+        // Check if the subscription is actually active
+        if (data['subscription'] != null && data['subscription']['isActive'] == true) {
+          return true;
+        } else {
+          print("Payment method updated but subscription not active yet");
+          return false;
+        }
+      } else if (response.statusCode == 401) {
+        await prefs.remove('auth_token');
+        await prefs.remove('email');
+        throw Exception("Session expired. Please login again.");
+      } else {
+        final errorData = jsonDecode(response.body);
+        print("Payment method update failed: ${errorData['message']}");
+        
+        // Handle specific error messages
+        String errorMessage = errorData['message'] ?? "Payment method update failed";
+        if (errorMessage.contains('Payment method attachment error')) {
+          print("Payment method attachment error - will retry");
+        } else if (errorMessage.contains('Payment intent error')) {
+          print("Payment intent error - will retry");
+        } else if (errorMessage.contains('Subscription update error')) {
+          print("Subscription update error - will retry");
+        }
+        
+        return false;
+      }
+    } catch (e) {
+      print("Error updating subscription payment method: $e");
+      return false;
+    }
+  }
+
+  // New: Fix subscription status based on successful charge
+  // This manually fixes subscription status when payment succeeded but subscription is incomplete
+  Future<bool> fixSubscriptionStatus() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('auth_token');
+
+      if (token == null) {
+        throw Exception("User not authenticated");
+      }
+
+      final response = await http.post(
+        Uri.parse("${ApiConstants.resolvedApiUrl}/subscriptions/fix-status"),
+        headers: {
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        print("Subscription status fixed: ${data['message']}");
+        
+        // Check if the subscription is actually active
+        if (data['subscription'] != null && data['subscription']['isActive'] == true) {
+          return true;
+        } else {
+          print("Subscription status fixed but not active yet");
+          return false;
+        }
+      } else if (response.statusCode == 401) {
+        await prefs.remove('auth_token');
+        await prefs.remove('email');
+        throw Exception("Session expired. Please login again.");
+      } else {
+        final errorData = jsonDecode(response.body);
+        print("Subscription status fix failed: ${errorData['message']}");
+        return false;
+      }
+    } catch (e) {
+      print("Error fixing subscription status: $e");
+      return false;
+    }
+  }
+
   // New: Confirm payment and activate subscription
   // This manually checks Stripe and updates the subscription status
   Future<bool> confirmPayment() async {
@@ -274,7 +455,14 @@ class SubscriptionController {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         print("Payment confirmed: ${data['message']}");
-        return true;
+        
+        // Check if the subscription is actually active
+        if (data['subscription'] != null && data['subscription']['isActive'] == true) {
+          return true;
+        } else {
+          print("Payment confirmed but subscription not active yet");
+          return false;
+        }
       } else if (response.statusCode == 401) {
         await prefs.remove('auth_token');
         await prefs.remove('email');
@@ -282,6 +470,8 @@ class SubscriptionController {
       } else {
         final errorData = jsonDecode(response.body);
         print("Payment confirmation failed: ${errorData['message']}");
+        print("Subscription status: ${errorData['status']}");
+        print("Is active: ${errorData['isActive']}");
         return false;
       }
     } catch (e) {
