@@ -39,11 +39,12 @@ class SubscriptionController {
     try {
       // Get user email from SharedPreferences
       SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? email = prefs.getString('email');
       String? token = prefs.getString('auth_token');
 
-      if (email == null || token == null) {
-        throw Exception("User not authenticated");
+      if (token == null) {
+        await prefs.remove('auth_token');
+        await prefs.remove('email');
+        throw Exception("Session expired. Please login again.");
       }
 
       // Call your backend API to create subscription
@@ -140,7 +141,7 @@ class SubscriptionController {
         bool subscriptionActive = false;
         for (int i = 0; i < 5; i++) {
           await Future.delayed(Duration(seconds: 3));
-          final statusCheck = await checkSubscriptionStatus(email!);
+          final statusCheck = await checkSubscriptionStatus(prefs.getString('email') ?? '');
           if (statusCheck != null && statusCheck['isActive'] == true) {
             subscriptionActive = true;
             break;
@@ -232,7 +233,10 @@ class SubscriptionController {
       String? token = prefs.getString('auth_token');
 
       if (token == null) {
-        return null; // User not authenticated
+        // Treat as session expired for consistent handling
+        await prefs.remove('auth_token');
+        await prefs.remove('email');
+        throw Exception("Session expired. Please login again.");
       }
 
       // Call your backend API to check subscription status
@@ -247,10 +251,10 @@ class SubscriptionController {
       if (response.statusCode == 200) {
         // Success - continue with existing logic
       } else if (response.statusCode == 401) {
-        // Token expired or invalid - clear it
+        // Token expired or invalid - clear it and surface explicit error
         await prefs.remove('auth_token');
         await prefs.remove('email');
-        return null; // Return null to trigger login
+        throw Exception("Session expired. Please login again.");
       } else {
         return null; // No subscription or other error
       }
@@ -306,7 +310,9 @@ class SubscriptionController {
       String? token = prefs.getString('auth_token');
 
       if (token == null) {
-        throw Exception("User not authenticated");
+        await prefs.remove('auth_token');
+        await prefs.remove('email');
+        throw Exception("Session expired. Please login again.");
       }
 
       final response = await http.get(
@@ -339,7 +345,9 @@ class SubscriptionController {
       String? token = prefs.getString('auth_token');
 
       if (token == null) {
-        throw Exception("User not authenticated");
+        await prefs.remove('auth_token');
+        await prefs.remove('email');
+        throw Exception("Session expired. Please login again.");
       }
 
       final response = await http.post(
@@ -398,7 +406,9 @@ class SubscriptionController {
       String? token = prefs.getString('auth_token');
 
       if (token == null) {
-        throw Exception("User not authenticated");
+        await prefs.remove('auth_token');
+        await prefs.remove('email');
+        throw Exception("Session expired. Please login again.");
       }
 
       final response = await http.post(
@@ -442,7 +452,9 @@ class SubscriptionController {
       String? token = prefs.getString('auth_token');
 
       if (token == null) {
-        throw Exception("User not authenticated");
+        await prefs.remove('auth_token');
+        await prefs.remove('email');
+        throw Exception("Session expired. Please login again.");
       }
 
       final response = await http.post(
@@ -488,7 +500,9 @@ class SubscriptionController {
       String? token = prefs.getString('auth_token');
 
       if (token == null) {
-        throw Exception("User not authenticated");
+        await prefs.remove('auth_token');
+        await prefs.remove('email');
+        throw Exception("Session expired. Please login again.");
       }
 
       final response = await http.post(

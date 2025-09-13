@@ -34,20 +34,18 @@ class _SubscriptionStatusState extends State<SubscriptionStatus> {
     } catch (e) {
       setState(() => isLoading = false);
       if (mounted) {
-        // Check if it's a session expired error
-        if (e.toString().contains('Session expired')) {
+        final message = e.toString();
+        final isSessionExpired = message.contains('Session expired');
+        if (isSessionExpired) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Session expired. Redirecting to login...')),
           );
-          // Redirect to login after a short delay
-          Future.delayed(const Duration(seconds: 1), () {
-            Get.offAll(() => LoginScreen());
-          });
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error loading subscription: $e')),
-          );
+          Get.offAll(() => LoginScreen());
+          return;
         }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading subscription: $e')),
+        );
       }
     }
   }
@@ -58,15 +56,17 @@ class _SubscriptionStatusState extends State<SubscriptionStatus> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final status = subscriptionStatus?['subscription']?['status'] ?? 'inactive';
-    final currentPeriodEnd = subscriptionStatus?['subscription']?['currentPeriodEnd'];
+    final raw = subscriptionStatus?['subscription'] ?? {};
+    final String status = (raw['status'] ?? 'inactive') as String;
+    final bool isActive = (raw['isActive'] ?? (status == 'active' || status == 'trialing')) as bool;
+    final currentPeriodEnd = raw['currentPeriodEnd'];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Subscription Status: ${status.toString().toUpperCase()}'),
+        Text('Subscription Status: ${(isActive ? 'ACTIVE' : status.toUpperCase())}'),
         const SizedBox(height: 8),
-        if (status == 'active' || status == 'trialing') ...[
+        if (isActive) ...[
           if (currentPeriodEnd != null)
             Text('Next Billing: ${DateTime.fromMillisecondsSinceEpoch((currentPeriodEnd as int) * 1000)}'),
           const SizedBox(height: 8),
@@ -75,10 +75,34 @@ class _SubscriptionStatusState extends State<SubscriptionStatus> {
             child: const Text('Cancel Subscription'),
           ),
         ] else ...[
-          ElevatedButton(
-            onPressed: () => _startSubscription(context),
-            child: const Text('Subscribe Now'),
-          ),
+          if (status == 'incomplete') ...[
+            const Text('Payment received. Finalizing activation...'),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                ElevatedButton(
+                  onPressed: () async {
+                    await _controller.fixSubscriptionStatus();
+                    await _loadSubscriptionStatus();
+                  },
+                  child: const Text('Refresh Status'),
+                ),
+                const SizedBox(width: 12),
+                OutlinedButton(
+                  onPressed: () async {
+                    await _controller.confirmPayment();
+                    await _loadSubscriptionStatus();
+                  },
+                  child: const Text('Force Confirm'),
+                )
+              ],
+            )
+          ] else ...[
+            ElevatedButton(
+              onPressed: () => _startSubscription(context),
+              child: const Text('Subscribe Now'),
+            ),
+          ],
         ],
       ],
     );

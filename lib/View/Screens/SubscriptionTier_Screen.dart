@@ -88,15 +88,17 @@ class SubscriptionTiersScreen extends StatelessWidget {
                           try {
                             await _subscriptionController.createSubscription(context, tiers[0].priceId);
                           } catch (e) {
+                            print("Subscribe Now error: $e");
                             if (e.toString().contains('Session expired')) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('Session expired. Redirecting to login...')),
                               );
-                              Future.delayed(const Duration(seconds: 1), () {
-                                Get.offAll(() => LoginScreen());
-                              });
+                              Get.offAll(() => LoginScreen());
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error: $e')),
+                              );
                             }
-                            // Other errors are already handled in createSubscription
                           }
                         }
                       },
@@ -183,15 +185,17 @@ class SubscriptionTiersScreen extends StatelessWidget {
       try {
         await _subscriptionController.createSubscription(context, tier.priceId);
       } catch (e) {
+        print("Tier tap error: $e");
         if (e.toString().contains('Session expired')) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Session expired. Redirecting to login...')),
           );
-          Future.delayed(const Duration(seconds: 1), () {
-            Get.offAll(() => LoginScreen());
-          });
+          Get.offAll(() => LoginScreen());
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e')),
+          );
         }
-        // Other errors are already handled in createSubscription
       }
     }
     print('Tapped on ${tier.title}');
