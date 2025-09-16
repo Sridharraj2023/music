@@ -43,6 +43,45 @@ const userSchema = mongoose.Schema(
         type: Boolean,
         default: false,
       },
+      paymentDate: {
+        type: Date,
+        default: null,
+      },
+      validityDays: {
+        type: Number,
+        default: 30,
+      },
+    },
+    notificationPreferences: {
+      emailReminders: {
+        type: Boolean,
+        default: true,
+      },
+      pushNotifications: {
+        type: Boolean,
+        default: true,
+      },
+      reminderFrequency: [{
+        type: String,
+        enum: ['7days', '3days', '1day', 'expired'],
+        default: ['7days', '3days', '1day']
+      }],
+      preferredTime: {
+        type: String,
+        default: '09:00',
+      },
+      timezone: {
+        type: String,
+        default: 'UTC',
+      },
+      lastReminderSent: {
+        type: Date,
+        default: null,
+      },
+      fcmToken: {
+        type: String,
+        default: null,
+      },
     },
   },
   {

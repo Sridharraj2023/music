@@ -35,7 +35,8 @@ export const handleWebhook = async (req, res) => {
             { 'subscription.id': subscriptionId },
             { 
               'subscription.status': subscription.status,
-              'subscription.currentPeriodEnd': new Date(subscription.current_period_end * 1000)
+              'subscription.currentPeriodEnd': new Date(subscription.current_period_end * 1000),
+              'subscription.paymentDate': new Date()
             }
           );
           console.log('Updated subscription status to active for subscription:', subscriptionId);
@@ -65,7 +66,8 @@ export const handleWebhook = async (req, res) => {
             { 'subscription.id': subscriptionId },
             { 
               'subscription.status': subscription.status,
-              'subscription.currentPeriodEnd': new Date(subscription.current_period_end * 1000)
+              'subscription.currentPeriodEnd': new Date(subscription.current_period_end * 1000),
+              'subscription.paymentDate': new Date()
             }
           );
           console.log('Updated subscription status to active for subscription:', subscriptionId);
@@ -79,7 +81,8 @@ export const handleWebhook = async (req, res) => {
               { 'subscription.id': subscriptionId },
               { 
                 'subscription.status': 'active',
-                'subscription.currentPeriodEnd': new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+                'subscription.currentPeriodEnd': new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+                'subscription.paymentDate': new Date()
               }
             );
             console.log('Updated subscription to active via webhook:', subscriptionId);
@@ -103,7 +106,8 @@ export const handleWebhook = async (req, res) => {
         { stripeCustomerId: subscriptionCreated.customer },
         { 
           'subscription.status': subscriptionCreated.status,
-          'subscription.currentPeriodEnd': new Date(subscriptionCreated.current_period_end * 1000)
+          'subscription.currentPeriodEnd': new Date(subscriptionCreated.current_period_end * 1000),
+          'subscription.paymentDate': new Date()
         }
       );
       break;
@@ -115,7 +119,8 @@ export const handleWebhook = async (req, res) => {
         { stripeCustomerId: subscriptionUpdated.customer },
         { 
           'subscription.status': subscriptionUpdated.status,
-          'subscription.currentPeriodEnd': new Date(subscriptionUpdated.current_period_end * 1000)
+          'subscription.currentPeriodEnd': new Date(subscriptionUpdated.current_period_end * 1000),
+          'subscription.paymentDate': new Date()
         }
       );
       break;
@@ -140,7 +145,8 @@ export const handleWebhook = async (req, res) => {
         { stripeCustomerId: invoicePaid.customer },
         { 
           'subscription.status': 'active',
-          'subscription.currentPeriodEnd': new Date(invoicePaid.period_end * 1000)
+          'subscription.currentPeriodEnd': new Date(invoicePaid.period_end * 1000),
+          'subscription.paymentDate': new Date()
         }
       );
       break;
@@ -183,16 +189,19 @@ export const getSubscriptionStatus = async (req, res) => {
     // Get latest subscription data from Stripe
     const subscription = await stripe.subscriptions.retrieve(user.subscription.id);
 
-    return res.json({
+    const response = {
       subscription: {
         id: subscription.id,
         status: subscription.status,
         currentPeriodStart: subscription.current_period_start,
         currentPeriodEnd: subscription.current_period_end,
         cancelAtPeriodEnd: subscription.cancel_at_period_end,
-        plan: subscription.items.data[0]?.price?.id
+        plan: subscription.items.data[0]?.price?.id,
+        isActive: subscription.status === 'active' || subscription.status === 'trialing'
       }
-    });
+    };
+
+    return res.json(response);
   } catch (error) {
     console.error('Error fetching subscription status:', error);
     return res.status(500).json({ 
@@ -346,6 +355,7 @@ export const updateSubscriptionPaymentMethod = async (req, res) => {
     // Update user subscription status
     user.subscription.status = subscription.status;
     user.subscription.currentPeriodEnd = new Date(subscription.current_period_end * 1000);
+    user.subscription.paymentDate = new Date();
     await user.save();
 
     // If subscription is still incomplete, wait a moment and check again
@@ -359,6 +369,7 @@ export const updateSubscriptionPaymentMethod = async (req, res) => {
       if (updatedSubscription.status === 'active' || updatedSubscription.status === 'trialing') {
         user.subscription.status = updatedSubscription.status;
         user.subscription.currentPeriodEnd = new Date(updatedSubscription.current_period_end * 1000);
+        user.subscription.paymentDate = new Date();
         await user.save();
         subscription = updatedSubscription;
       }
@@ -456,6 +467,7 @@ export const fixSubscriptionStatus = async (req, res) => {
         // Update user subscription status
         user.subscription.status = currentSubscription.status;
         user.subscription.currentPeriodEnd = new Date(currentSubscription.current_period_end * 1000);
+        user.subscription.paymentDate = new Date();
         await user.save();
 
         return res.json({
@@ -476,6 +488,7 @@ export const fixSubscriptionStatus = async (req, res) => {
       // Update user subscription status to active
       user.subscription.status = 'active';
       user.subscription.currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+      user.subscription.paymentDate = new Date();
       await user.save();
 
       return res.json({
@@ -510,6 +523,7 @@ export const fixSubscriptionStatus = async (req, res) => {
         // Update user subscription status
         user.subscription.status = updatedSubscription.status;
         user.subscription.currentPeriodEnd = new Date(updatedSubscription.current_period_end * 1000);
+        user.subscription.paymentDate = new Date();
         await user.save();
 
         return res.json({
@@ -528,6 +542,7 @@ export const fixSubscriptionStatus = async (req, res) => {
     if (subscription.status === 'active' || subscription.status === 'trialing') {
       user.subscription.status = subscription.status;
       user.subscription.currentPeriodEnd = new Date(subscription.current_period_end * 1000);
+      user.subscription.paymentDate = new Date();
       await user.save();
 
       return res.json({
@@ -588,6 +603,7 @@ export const confirmPayment = async (req, res) => {
       // Update user subscription status
       user.subscription.status = subscription.status;
       user.subscription.currentPeriodEnd = new Date(subscription.current_period_end * 1000);
+      user.subscription.paymentDate = new Date();
       await user.save();
 
       return res.json({
@@ -613,6 +629,7 @@ export const confirmPayment = async (req, res) => {
         if (updatedSubscription.status === 'active' || updatedSubscription.status === 'trialing') {
           user.subscription.status = updatedSubscription.status;
           user.subscription.currentPeriodEnd = new Date(updatedSubscription.current_period_end * 1000);
+          user.subscription.paymentDate = new Date();
           await user.save();
 
           return res.json({
@@ -644,6 +661,78 @@ export const confirmPayment = async (req, res) => {
     console.error('Error confirming payment:', error);
     return res.status(500).json({ 
       message: 'Failed to confirm payment',
+      error: error.message 
+    });
+  }
+};
+
+// GET /subscriptions/details - Get detailed subscription information including countdown
+export const getSubscriptionDetails = async (req, res) => {
+  try {
+    const userId = req.user && req.user._id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user || !user.subscription || !user.subscription.id) {
+      return res.status(404).json({ 
+        message: 'No subscription found' 
+      });
+    }
+
+    // Get latest subscription data from Stripe
+    const subscription = await stripe.subscriptions.retrieve(user.subscription.id);
+
+    // Calculate countdown information
+    const now = new Date();
+    let paymentDate = user.subscription.paymentDate;
+    let expiryDate = null;
+    let remainingDays = 0;
+    let validityStatus = 'unknown';
+
+    // If payment date exists, calculate expiry and remaining days
+    if (paymentDate) {
+      expiryDate = new Date(paymentDate.getTime() + (user.subscription.validityDays * 24 * 60 * 60 * 1000));
+      const timeDiff = expiryDate.getTime() - now.getTime();
+      remainingDays = Math.max(0, Math.ceil(timeDiff / (1000 * 60 * 60 * 24)));
+
+      // Determine validity status based on remaining days
+      if (remainingDays > 7) {
+        validityStatus = 'good';
+      } else if (remainingDays > 3) {
+        validityStatus = 'warning';
+      } else if (remainingDays > 0) {
+        validityStatus = 'critical';
+      } else {
+        validityStatus = 'expired';
+      }
+    }
+
+    const response = {
+      subscription: {
+        id: subscription.id,
+        status: subscription.status,
+        currentPeriodStart: subscription.current_period_start,
+        currentPeriodEnd: subscription.current_period_end,
+        cancelAtPeriodEnd: subscription.cancel_at_period_end,
+        plan: subscription.items.data[0]?.price?.id,
+        isActive: subscription.status === 'active' || subscription.status === 'trialing'
+      },
+      paymentInfo: {
+        paymentDate: paymentDate,
+        expiryDate: expiryDate,
+        remainingDays: remainingDays,
+        validityDays: user.subscription.validityDays,
+        validityStatus: validityStatus
+      }
+    };
+
+    return res.json(response);
+  } catch (error) {
+    console.error('Error fetching subscription details:', error);
+    return res.status(500).json({ 
+      message: 'Failed to fetch subscription details',
       error: error.message 
     });
   }
@@ -840,7 +929,9 @@ export const createSubscription = async (req, res) => {
       user.subscription = {
         id: subscription.id,
         status: subscription.status,
-        currentPeriodEnd: subscription.current_period_end
+        currentPeriodEnd: subscription.current_period_end,
+        paymentDate: new Date(), // Save payment date even for incomplete subscriptions
+        validityDays: 30
       };
       await user.save();
 

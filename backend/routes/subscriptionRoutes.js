@@ -1,5 +1,5 @@
 import express from 'express';
-import { createSubscription, handleWebhook, getSubscriptionStatus, cancelSubscription, confirmPayment, updateSubscriptionPaymentMethod, fixSubscriptionStatus } from '../controllers/subscriptionController.js';
+import { createSubscription, getSubscriptionStatus, cancelSubscription, confirmPayment, updateSubscriptionPaymentMethod, fixSubscriptionStatus, getSubscriptionDetails } from '../controllers/subscriptionController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -9,6 +9,9 @@ router.post('/create', protect, createSubscription);
 
 // GET /subscriptions/status - Get current subscription status
 router.get('/status', protect, getSubscriptionStatus);
+
+// GET /subscriptions/details - Get detailed subscription information including countdown
+router.get('/details', protect, getSubscriptionDetails);
 
 // POST /subscriptions/cancel - Cancel subscription at period end
 router.post('/cancel', protect, cancelSubscription);
@@ -22,10 +25,6 @@ router.post('/fix-status', protect, fixSubscriptionStatus);
 // POST /subscriptions/confirm - Manually confirm payment and activate subscription
 router.post('/confirm', protect, confirmPayment);
 
-// Stripe webhook endpoint - must be raw body for signature verification
-router.post('/webhook', 
-  express.raw({type: 'application/json'}), 
-  handleWebhook
-);
+// Webhook is registered at app level in server.js before JSON body parsing
 
 export default router;
