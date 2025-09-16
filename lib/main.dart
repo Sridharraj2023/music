@@ -121,8 +121,7 @@ void main() async {
   print("Resolved API URL: ${ApiConstants.apiUrl}");
   print("Resolved Stripe Publishable Key: ${ApiConstants.publishKey}");
   
-  // Force correct IP for local development (temporary fix)
-  ApiConstants.setApiUrlOverride("http://192.168.0.101:5000/api");
+  // Use API URL from ApiConstants (reads from .env or uses default)
   print("Resolved API URL: ${ApiConstants.resolvedApiUrl}");
 
   // Inject GetX controller
