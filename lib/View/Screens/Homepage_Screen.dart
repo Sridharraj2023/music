@@ -15,6 +15,8 @@ import 'package:elevate/View/Widgets/Search_Bar.dart';
 import 'package:elevate/View/Widgets/Tab_Bar.dart';
 import 'package:elevate/View/Widgets/audio_player_widget.dart';
 import 'package:elevate/View/Widgets/subscription_status.dart';
+import 'package:elevate/View/Screens/Notification_Preferences_Screen.dart';
+import 'package:elevate/View/Screens/Notification_History_Screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
@@ -152,6 +154,34 @@ class _HomePageState extends State<HomePage>
                 ],
               ),
             ),
+            Divider(),
+            ListTile(
+              leading: Icon(Icons.notifications, color: Color(0xFF6F41F3)),
+              title: Text("Notification Preferences"),
+              onTap: () {
+                Navigator.pop(context); // Close drawer
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const NotificationPreferencesScreen(),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.history, color: Color(0xFF6F41F3)),
+              title: Text("Notification History"),
+              onTap: () {
+                Navigator.pop(context); // Close drawer
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const NotificationHistoryScreen(),
+                  ),
+                );
+              },
+            ),
+            Divider(),
             ListTile(
               leading: Icon(Icons.info, color: Colors.black),
               title: Text("About"),

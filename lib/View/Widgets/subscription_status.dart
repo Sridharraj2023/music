@@ -1,5 +1,6 @@
 import 'package:elevate/Controller/Subscription_Controller.dart';
 import 'package:elevate/View/Screens/Login_Screen.dart';
+import 'package:elevate/View/Screens/Subscription_Details_Screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -72,6 +73,12 @@ class _SubscriptionStatusState extends State<SubscriptionStatus> {
           const SizedBox(height: 8),
           ElevatedButton(
             onPressed: () => _showCancelConfirmation(context),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
             child: const Text('Cancel Subscription'),
           ),
         ] else ...[
@@ -80,26 +87,71 @@ class _SubscriptionStatusState extends State<SubscriptionStatus> {
             const SizedBox(height: 8),
             Row(
               children: [
-                ElevatedButton(
-                  onPressed: () async {
-                    await _controller.fixSubscriptionStatus();
-                    await _loadSubscriptionStatus();
-                  },
-                  child: const Text('Refresh Status'),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      await _controller.fixSubscriptionStatus();
+                      await _loadSubscriptionStatus();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('Refresh Status'),
+                  ),
                 ),
                 const SizedBox(width: 12),
-                OutlinedButton(
-                  onPressed: () async {
-                    await _controller.confirmPayment();
-                    await _loadSubscriptionStatus();
-                  },
-                  child: const Text('Force Confirm'),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () async {
+                      await _controller.confirmPayment();
+                      await _loadSubscriptionStatus();
+                    },
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('Force Confirm'),
+                  ),
                 )
               ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SubscriptionDetailsScreen(),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6F41F3),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text('Subscription Details'),
+              ),
             )
           ] else ...[
             ElevatedButton(
               onPressed: () => _startSubscription(context),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
               child: const Text('Subscribe Now'),
             ),
           ],

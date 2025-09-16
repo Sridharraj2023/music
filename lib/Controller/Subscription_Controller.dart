@@ -3,6 +3,7 @@
 import 'dart:convert';
 
 import 'package:elevate/View/Screens/Homepage_Screen.dart';
+import 'package:elevate/View/Screens/Login_Screen.dart';
 import 'package:elevate/utlis/api_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -128,6 +129,9 @@ class SubscriptionController {
       await Stripe.instance.presentPaymentSheet();
       print("Payment sheet completed");
       
+      // Save payment date immediately after successful payment
+      await prefs.setString('payment_date', DateTime.now().toIso8601String());
+      
       // After successful payment, update subscription with payment method
       print("Updating subscription with payment method...");
       final paymentConfirmed = await updateSubscriptionPaymentMethod(paymentIntentId);
@@ -193,7 +197,7 @@ class SubscriptionController {
           SnackBar(content: Text("Session expired. Please login again."))
         );
         // Redirect to login screen
-        Get.offAllNamed('/login');
+        Get.offAll(() => LoginScreen());
       } else if (e.toString().contains('Payment setup error')) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Payment setup error. Please try again."))

@@ -108,6 +108,7 @@ import 'View/Screens/Login_Screen.dart';
 import 'package:easy_splash_screen/easy_splash_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'View/Screens/Homepage_Screen.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -120,9 +121,9 @@ void main() async {
   print("Resolved API URL: ${ApiConstants.apiUrl}");
   print("Resolved Stripe Publishable Key: ${ApiConstants.publishKey}");
   
-  // For testing, use local server (comment out for production)
-  ApiConstants.useLocalServer();
-  print("Using local server for testing: ${ApiConstants.resolvedApiUrl}");
+  // Force correct IP for local development (temporary fix)
+  ApiConstants.setApiUrlOverride("http://192.168.0.101:5000/api");
+  print("Resolved API URL: ${ApiConstants.resolvedApiUrl}");
 
   // Inject GetX controller
   Get.put(BottomBarController());
@@ -130,6 +131,10 @@ void main() async {
   // Stripe publishable key
   Stripe.publishableKey = ApiConstants.publishKey;
   print("Stripe initialized with key: ${Stripe.publishableKey}");
+
+  // Initialize notification service
+  await NotificationService().initialize();
+  print("Notification service initialized");
 
   runApp(const MyApp());
 }
