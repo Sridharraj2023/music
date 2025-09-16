@@ -196,7 +196,7 @@ class SubscriptionController {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Session expired. Please login again."))
         );
-        // Redirect to login screen
+        // Redirect to login screen if 
         Get.offAll(() => LoginScreen());
       } else if (e.toString().contains('Payment setup error')) {
         ScaffoldMessenger.of(context).showSnackBar(
