@@ -17,6 +17,8 @@ class SubscriptionController {
   bool isActive = false;
   DateTime? expiryDate;
   String? subscriptionStatus;
+  bool autoDebitEnabled = false;
+  bool hasDefaultPaymentMethod = false;
   List<SubscriptionTier> getSubscriptionTiers() {
     return [
       
@@ -228,6 +230,111 @@ class SubscriptionController {
         );
       }
     }
+  }
+
+  // Billing status: whether user has default payment method and auto-debit preference
+  Future<Map<String, dynamic>> getBillingStatus() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+    if (token == null) {
+      await prefs.remove('auth_token');
+      await prefs.remove('email');
+      throw Exception("Session expired. Please login again.");
+    }
+
+    final response = await http.get(
+      Uri.parse("${ApiConstants.resolvedApiUrl}/users/billing"),
+      headers: {
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      hasDefaultPaymentMethod = (data['hasDefaultPaymentMethod'] ?? false) as bool;
+      autoDebitEnabled = (data['autoDebit'] ?? false) as bool;
+      return data;
+    } else if (response.statusCode == 401) {
+      await prefs.remove('auth_token');
+      await prefs.remove('email');
+      throw Exception("Session expired. Please login again.");
+    }
+
+    throw Exception('Failed to load billing status');
+  }
+
+  // Prompt user to set a default payment method via SetupIntent (no raw card data stored)
+  Future<bool> ensureDefaultPaymentMethod(BuildContext context) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+    if (token == null) {
+      await prefs.remove('auth_token');
+      await prefs.remove('email');
+      throw Exception("Session expired. Please login again.");
+    }
+
+    // Request a SetupIntent client secret from backend
+    final setupIntentResp = await http.post(
+      Uri.parse("${ApiConstants.resolvedApiUrl}/payments/setup-intent"),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+    );
+
+    if (setupIntentResp.statusCode != 200) {
+      return false;
+    }
+    final setupData = jsonDecode(setupIntentResp.body) as Map<String, dynamic>;
+    final clientSecret = setupData['clientSecret'] as String?;
+    if (clientSecret == null) return false;
+
+    // Present Stripe payment sheet to collect and attach a payment method (mandate)
+    await Stripe.instance.initPaymentSheet(
+      paymentSheetParameters: SetupPaymentSheetParameters(
+        setupIntentClientSecret: clientSecret,
+        merchantDisplayName: 'Elevate',
+        style: ThemeMode.system,
+        allowsDelayedPaymentMethods: true,
+      ),
+    );
+
+    await Stripe.instance.presentPaymentSheet();
+
+    // Backend should attach the payment method in webhook or by returning id
+    // Re-check billing status
+    final status = await getBillingStatus();
+    return (status['hasDefaultPaymentMethod'] ?? false) as bool;
+  }
+
+  // Toggle auto-debit preference on backend
+  Future<bool> setAutoDebit(bool enabled) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+    if (token == null) {
+      await prefs.remove('auth_token');
+      await prefs.remove('email');
+      throw Exception("Session expired. Please login again.");
+    }
+
+    final resp = await http.put(
+      Uri.parse("${ApiConstants.resolvedApiUrl}/subscriptions/auto-debit"),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode({"autoDebit": enabled}),
+    );
+
+    if (resp.statusCode == 200) {
+      autoDebitEnabled = enabled;
+      return true;
+    } else if (resp.statusCode == 401) {
+      await prefs.remove('auth_token');
+      await prefs.remove('email');
+      throw Exception("Session expired. Please login again.");
+    }
+    return false;
   }
 
   Future<Map<String, dynamic>?> checkSubscriptionStatus(String email) async {

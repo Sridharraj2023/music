@@ -17,18 +17,33 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
   Timer? _timer;
   final SubscriptionController _subscriptionController = SubscriptionController();
   bool isLoading = false;
+  bool _autoDebit = false;
+  bool _hasDefaultPaymentMethod = false;
 
   @override
   void initState() {
     super.initState();
     _loadPaymentDate();
     _startCountdown();
+    _loadBillingStatus();
   }
 
   @override
   void dispose() {
     _timer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _loadBillingStatus() async {
+    try {
+      final status = await _subscriptionController.getBillingStatus();
+      setState(() {
+        _hasDefaultPaymentMethod = status['hasDefaultPaymentMethod'] ?? false;
+        _autoDebit = status['autoDebit'] ?? false;
+      });
+    } catch (e) {
+      // Silent fail to avoid blocking screen; can toast if needed
+    }
   }
 
   Future<void> _loadPaymentDate() async {
@@ -140,7 +155,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
           ),
         ),
         child: SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(20.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -326,6 +341,121 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                 
                 const SizedBox(height: 20),
                 
+                // Auto-debit Card
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF6F41F3).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.autorenew,
+                              color: Color(0xFF6F41F3),
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Auto-debit',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF333333),
+                            ),
+                          ),
+                          const Spacer(),
+                          Switch(
+                            value: _autoDebit,
+                            onChanged: (value) async {
+                              if (value) {
+                                // Enabling: require default payment method
+                                if (!_hasDefaultPaymentMethod) {
+                                  final proceed = await _showConsentAndPmPrompt();
+                                  if (!proceed) return;
+                                  final ok = await _subscriptionController.ensureDefaultPaymentMethod(context);
+                                  if (!ok) {
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Please add and set a default payment method to enable auto-debit.'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                    return;
+                                  }
+                                } else {
+                                  final consent = await _showConsentDialog();
+                                  if (!consent) return;
+                                }
+                              }
+
+                              final saved = await _subscriptionController.setAutoDebit(value);
+                              if (saved) {
+                                setState(() {
+                                  _autoDebit = value;
+                                  _hasDefaultPaymentMethod = true; // by this point, ensured
+                                });
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(value
+                                          ? 'Auto-debit enabled. You can turn this off anytime.'
+                                          : 'Auto-debit disabled.'),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                }
+                              } else {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Failed to update auto-debit. Please try again.'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                            activeColor: const Color(0xFF6F41F3),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _hasDefaultPaymentMethod
+                            ? 'Default payment method is set.'
+                            : 'No default payment method set. Required to enable auto-debit.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: _hasDefaultPaymentMethod ? Colors.green[700] : Colors.red[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 20),
+                
                 // Action Buttons
                 Row(
                   children: [
@@ -373,6 +503,36 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
         ),
       ),
     );
+  }
+
+  Future<bool> _showConsentAndPmPrompt() async {
+    final consent = await _showConsentDialog();
+    if (!consent) return false;
+    return true;
+  }
+
+  Future<bool> _showConsentDialog() async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Enable Auto-debit?'),
+            content: const Text(
+              'I authorize Elevate to automatically charge my saved payment method for each renewal. '
+              'You can turn this off anytime in Subscription settings.'
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Agree & Continue'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
   }
 
   Widget _buildInfoRow(String label, String value, IconData icon) {
