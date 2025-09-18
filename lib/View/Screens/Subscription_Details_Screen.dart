@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'package:elevate/Controller/Subscription_Controller.dart';
+import 'Payment_Method_Setup_Screen.dart';
 
 class SubscriptionDetailsScreen extends StatefulWidget {
   const SubscriptionDetailsScreen({super.key});
@@ -389,18 +390,22 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                               if (value) {
                                 // Enabling: require default payment method
                                 if (!_hasDefaultPaymentMethod) {
-                                  final proceed = await _showConsentAndPmPrompt();
-                                  if (!proceed) return;
-                                  final ok = await _subscriptionController.ensureDefaultPaymentMethod(context);
-                                  if (!ok) {
-                                    if (mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('Please add and set a default payment method to enable auto-debit.'),
-                                          backgroundColor: Colors.red,
-                                        ),
-                                      );
-                                    }
+                                  // Navigate to dedicated payment method setup screen
+                                  final result = await Navigator.push<bool>(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const PaymentMethodSetupScreen(),
+                                    ),
+                                  );
+                                  
+                                  if (result == true) {
+                                    // Payment method setup successful, refresh billing status
+                                    await _loadBillingStatus();
+                                    // Show consent dialog for auto-debit
+                                    final consent = await _showConsentDialog();
+                                    if (!consent) return;
+                                  } else {
+                                    // User cancelled setup
                                     return;
                                   }
                                 } else {
@@ -450,6 +455,33 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                           color: _hasDefaultPaymentMethod ? Colors.green[700] : Colors.red[700],
                         ),
                       ),
+                      if (_hasDefaultPaymentMethod) ...[
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: TextButton(
+                            onPressed: () async {
+                              final result = await Navigator.push<bool>(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const PaymentMethodSetupScreen(),
+                                ),
+                              );
+                              if (result == true) {
+                                await _loadBillingStatus();
+                              }
+                            },
+                            style: TextButton.styleFrom(
+                              foregroundColor: const Color(0xFF6F41F3),
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                            ),
+                            child: const Text(
+                              'Manage Payment Method',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -505,11 +537,6 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
     );
   }
 
-  Future<bool> _showConsentAndPmPrompt() async {
-    final consent = await _showConsentDialog();
-    if (!consent) return false;
-    return true;
-  }
 
   Future<bool> _showConsentDialog() async {
     return await showDialog<bool>(
