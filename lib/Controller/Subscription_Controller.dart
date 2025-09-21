@@ -265,46 +265,71 @@ class SubscriptionController {
 
   // Prompt user to set a default payment method via SetupIntent (no raw card data stored)
   Future<bool> ensureDefaultPaymentMethod(BuildContext context) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
-    if (token == null) {
-      await prefs.remove('auth_token');
-      await prefs.remove('email');
-      throw Exception("Session expired. Please login again.");
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+      if (token == null) {
+        await prefs.remove('auth_token');
+        await prefs.remove('email');
+        throw Exception("Session expired. Please login again.");
+      }
+
+      print("Requesting SetupIntent from backend...");
+      
+      // Request a SetupIntent client secret from backend
+      final setupIntentResp = await http.post(
+        Uri.parse("${ApiConstants.resolvedApiUrl}/payments/setup-intent"),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+      );
+
+      print("SetupIntent response status: ${setupIntentResp.statusCode}");
+      print("SetupIntent response body: ${setupIntentResp.body}");
+
+      if (setupIntentResp.statusCode != 200) {
+        print("SetupIntent request failed with status: ${setupIntentResp.statusCode}");
+        return false;
+      }
+      
+      final setupData = jsonDecode(setupIntentResp.body) as Map<String, dynamic>;
+      final clientSecret = setupData['clientSecret'] as String?;
+      
+      if (clientSecret == null) {
+        print("No clientSecret in SetupIntent response");
+        return false;
+      }
+
+      print("Initializing payment sheet with client secret: ${clientSecret.substring(0, 20)}...");
+
+      // Present Stripe payment sheet to collect and attach a payment method (mandate)
+      await Stripe.instance.initPaymentSheet(
+        paymentSheetParameters: SetupPaymentSheetParameters(
+          setupIntentClientSecret: clientSecret,
+          merchantDisplayName: 'Elevate',
+          style: ThemeMode.system,
+          allowsDelayedPaymentMethods: true,
+        ),
+      );
+
+      print("Presenting payment sheet...");
+      await Stripe.instance.presentPaymentSheet();
+      print("Payment sheet completed successfully!");
+
+      // Wait a moment for the payment method to be attached
+      await Future.delayed(Duration(seconds: 2));
+
+      // Re-check billing status
+      print("Checking billing status...");
+      final status = await getBillingStatus();
+      print("Billing status: $status");
+      
+      return (status['hasDefaultPaymentMethod'] ?? false) as bool;
+    } catch (e) {
+      print("Error in ensureDefaultPaymentMethod: $e");
+      rethrow;
     }
-
-    // Request a SetupIntent client secret from backend
-    final setupIntentResp = await http.post(
-      Uri.parse("${ApiConstants.resolvedApiUrl}/payments/setup-intent"),
-      headers: {
-        "Authorization": "Bearer $token",
-        "Content-Type": "application/json",
-      },
-    );
-
-    if (setupIntentResp.statusCode != 200) {
-      return false;
-    }
-    final setupData = jsonDecode(setupIntentResp.body) as Map<String, dynamic>;
-    final clientSecret = setupData['clientSecret'] as String?;
-    if (clientSecret == null) return false;
-
-    // Present Stripe payment sheet to collect and attach a payment method (mandate)
-    await Stripe.instance.initPaymentSheet(
-      paymentSheetParameters: SetupPaymentSheetParameters(
-        setupIntentClientSecret: clientSecret,
-        merchantDisplayName: 'Elevate',
-        style: ThemeMode.system,
-        allowsDelayedPaymentMethods: true,
-      ),
-    );
-
-    await Stripe.instance.presentPaymentSheet();
-
-    // Backend should attach the payment method in webhook or by returning id
-    // Re-check billing status
-    final status = await getBillingStatus();
-    return (status['hasDefaultPaymentMethod'] ?? false) as bool;
   }
 
   // Toggle auto-debit preference on backend

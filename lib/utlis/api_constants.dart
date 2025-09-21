@@ -2,7 +2,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ApiConstants {
   // API Configuration
-  static String get apiUrl => dotenv.env['API_URL'] ?? "http://192.168.0.101:5000/api";
+  static String get apiUrl => dotenv.env['API_URL'] ?? "http://192.168.0.100:5000/api";
   
   // Stripe Configuration (Publishable Key only - safe for frontend)
   static String get publishKey => dotenv.env['STRIPE_PUBLISHABLE_KEY'] ?? 'pk_test_51RqimhIjXTLOotvoR7Z3f1z7Ud8BWXwKOjDHoGLnhM8QIMdJS31JVZ0zqpAPTghFS0GZ9NwIl4zT1I3mkvzfRatm00isg3USh7';
@@ -35,7 +35,7 @@ class ApiConstants {
   
   // Convenience methods for switching between environments
   static void useLocalServer() {
-    setApiUrlOverride("http://192.168.0.101:5000/api");
+    setApiUrlOverride("http://192.168.0.100:5000/api");
   }
   
   static void useProductionServer() {

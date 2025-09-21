@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import '../../Controller/Subscription_Controller.dart';
 
@@ -17,11 +18,18 @@ class _PaymentMethodSetupScreenState extends State<PaymentMethodSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF6F41F3), // Set scaffold background to prevent overflow
       appBar: AppBar(
         title: const Text('Setup Payment Method'),
         backgroundColor: const Color(0xFF6F41F3),
         foregroundColor: Colors.white,
         elevation: 0,
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          systemNavigationBarColor: Color(0xFF6F41F3),
+          systemNavigationBarIconBrightness: Brightness.light,
+        ),
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -37,7 +45,7 @@ class _PaymentMethodSetupScreenState extends State<PaymentMethodSetupScreen> {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(20.0),
+            padding: const EdgeInsets.fromLTRB(20.0, 20.0, 20.0, 20.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -152,7 +160,7 @@ class _PaymentMethodSetupScreenState extends State<PaymentMethodSetupScreen> {
                   ),
                 ),
                 
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 
                 // Setup Button
                 SizedBox(
@@ -162,9 +170,9 @@ class _PaymentMethodSetupScreenState extends State<PaymentMethodSetupScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFEAE2FF), // light purple
                       foregroundColor: const Color(0xFF6F41F3), // dark purple text
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       elevation: 0,
                     ),
@@ -180,14 +188,14 @@ class _PaymentMethodSetupScreenState extends State<PaymentMethodSetupScreen> {
                         : const Text(
                             'Add Payment Method',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 15,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
                   ),
                 ),
                 
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 
                 // Cancel Button details
                 SizedBox(
@@ -195,17 +203,17 @@ class _PaymentMethodSetupScreenState extends State<PaymentMethodSetupScreen> {
                   child: TextButton(
                     onPressed: () => Navigator.pop(context, false),
                     style: TextButton.styleFrom(
-                      backgroundColor: const Color(0xFFFFCDD2), // light red
+                      backgroundColor: const Color(0xFFE57373), // lighter red
                       foregroundColor: Colors.white, // white text
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
                     child: const Text(
                       'Cancel',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -213,20 +221,19 @@ class _PaymentMethodSetupScreenState extends State<PaymentMethodSetupScreen> {
                 ),
                 
                 if (_setupComplete) ...[
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
+                      color: Colors.green,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.green.withOpacity(0.3)),
                     ),
                     child: Row(
                       children: [
                         const Icon(
                           Icons.check_circle,
-                          color: Colors.green,
+                          color: Colors.white,
                           size: 24,
                         ),
                         const SizedBox(width: 12),
@@ -234,7 +241,7 @@ class _PaymentMethodSetupScreenState extends State<PaymentMethodSetupScreen> {
                           child: Text(
                             'Payment method setup complete! You can now enable auto-debit.',
                             style: TextStyle(
-                              color: Colors.green,
+                              color: Colors.white,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -313,15 +320,7 @@ class _PaymentMethodSetupScreenState extends State<PaymentMethodSetupScreen> {
           _isLoading = false;
         });
         
-        // Show success message
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Payment method added successfully!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
+        // Success message is shown via _setupComplete UI widget
         
         // Auto-close after 2 seconds
         Future.delayed(const Duration(seconds: 2), () {
@@ -358,6 +357,7 @@ class _PaymentMethodSetupScreenState extends State<PaymentMethodSetupScreen> {
       }
     }
   }
+
 
   Future<bool> _showConsentDialog() async {
     return await showDialog<bool>(
