@@ -189,7 +189,7 @@ class _PaymentMethodSetupScreenState extends State<PaymentMethodSetupScreen> {
                 
                 const SizedBox(height: 16),
                 
-                // Cancel Button
+                // Cancel Button details
                 SizedBox(
                   width: double.infinity,
                   child: TextButton(
