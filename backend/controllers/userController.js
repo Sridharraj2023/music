@@ -4,6 +4,19 @@ import generateToken from '../utils/generateToken.js';
 import bcrypt from 'bcryptjs';
 import nodemailer from 'nodemailer';
 import jwt from 'jsonwebtoken';
+import Stripe from 'stripe';
+
+// Debug: Check if STRIPE_SECRET_KEY is loaded
+console.log('STRIPE_SECRET_KEY:', process.env.STRIPE_SECRET_KEY ? 'Found' : 'NOT FOUND');
+console.log('All env vars:', Object.keys(process.env).filter(key => key.includes('STRIPE')));
+
+// Initialize Stripe only if secret key is available
+let stripe = null;
+if (process.env.STRIPE_SECRET_KEY) {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+} else {
+  console.warn('STRIPE_SECRET_KEY not found - Stripe will not be initialized');
+}
 
 
 // @desc    Auth user & get token
@@ -269,6 +282,67 @@ const deleteUser = asyncHandler(async (req, res) => {
 });
 
 
+// @desc    Get user billing status
+// @route   GET /api/users/billing
+// @access  Private
+const getBillingStatus = asyncHandler(async (req, res) => {
+  try {
+    const userId = req.user && req.user._id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if user has a default payment method
+    let hasDefaultPaymentMethod = false;
+    if (user.stripeCustomerId && stripe) {
+      try {
+        console.log('Checking payment methods for customer:', user.stripeCustomerId);
+        
+        // First, get all payment methods for the customer
+        const paymentMethods = await stripe.paymentMethods.list({
+          customer: user.stripeCustomerId,
+          type: 'card',
+        });
+        
+        console.log('Found payment methods:', paymentMethods.data.length);
+        console.log('Payment methods:', paymentMethods.data.map(pm => ({
+          id: pm.id,
+          type: pm.type,
+          card: pm.card?.last4
+        })));
+        
+        // Check if customer has any payment methods
+        hasDefaultPaymentMethod = paymentMethods.data.length > 0;
+        
+        console.log('hasDefaultPaymentMethod:', hasDefaultPaymentMethod);
+      } catch (error) {
+        console.error('Error fetching customer payment methods:', error);
+      }
+    } else if (!stripe) {
+      console.warn('Stripe not initialized - cannot check payment methods');
+    }
+
+    // Get auto-debit preference (default to false if not set)
+    const autoDebit = user.autoDebit || false;
+
+    return res.json({
+      hasDefaultPaymentMethod,
+      autoDebit
+    });
+  } catch (error) {
+    console.error('Error fetching billing status:', error);
+    return res.status(500).json({ 
+      message: 'Failed to fetch billing status',
+      error: error.message 
+    });
+  }
+});
+
 export {
   authUser,
   registerUser,
@@ -280,4 +354,5 @@ export {
   getAllUsers,
   getUserById,
   deleteUser,
+  getBillingStatus,
 };

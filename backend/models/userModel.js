@@ -26,6 +26,10 @@ const userSchema = mongoose.Schema(
       type: String,
       default: null,
     },
+    autoDebit: {
+      type: Boolean,
+      default: false,
+    },
     subscription: {
       id: {
         type: String,

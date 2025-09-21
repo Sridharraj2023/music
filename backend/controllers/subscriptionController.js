@@ -1,7 +1,16 @@
 import Stripe from 'stripe';
 import User from '../models/userModel.js';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+// Debug: Check if STRIPE_SECRET_KEY is loaded
+console.log('Subscription Controller - STRIPE_SECRET_KEY:', process.env.STRIPE_SECRET_KEY ? 'Found' : 'NOT FOUND');
+
+// Initialize Stripe only if secret key is available
+let stripe = null;
+if (process.env.STRIPE_SECRET_KEY) {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+} else {
+  console.warn('Subscription Controller - STRIPE_SECRET_KEY not found - Stripe will not be initialized');
+}
 
 export const handleWebhook = async (req, res) => {
   const sig = req.headers['stripe-signature'];
@@ -775,6 +784,95 @@ export const cancelSubscription = async (req, res) => {
     console.error('Error canceling subscription:', error);
     return res.status(500).json({ 
       message: 'Failed to cancel subscription',
+      error: error.message 
+    });
+  }
+};
+
+// POST /payments/setup-intent - Create SetupIntent for payment method collection
+export const createSetupIntent = async (req, res) => {
+  try {
+    const userId = req.user && req.user._id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Create Stripe customer if not exists
+    let stripeCustomerId = user.stripeCustomerId;
+    if (!stripeCustomerId) {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        name: user.name,
+      });
+      stripeCustomerId = customer.id;
+      user.stripeCustomerId = stripeCustomerId;
+      await user.save();
+    }
+
+    // Create SetupIntent for collecting payment method
+    const setupIntent = await stripe.setupIntents.create({
+      customer: stripeCustomerId,
+      payment_method_types: ['card'],
+      usage: 'off_session', // For future payments
+      metadata: {
+        user_id: userId.toString()
+      }
+    });
+
+    console.log('SetupIntent created:', {
+      id: setupIntent.id,
+      customer: setupIntent.customer,
+      status: setupIntent.status
+    });
+
+    return res.json({
+      clientSecret: setupIntent.client_secret
+    });
+  } catch (error) {
+    console.error('Error creating SetupIntent:', error);
+    return res.status(500).json({ 
+      message: 'Failed to create setup intent',
+      error: error.message 
+    });
+  }
+};
+
+// PUT /subscriptions/auto-debit - Toggle auto-debit preference
+export const setAutoDebit = async (req, res) => {
+  try {
+    const userId = req.user && req.user._id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+
+    const { autoDebit } = req.body;
+    if (typeof autoDebit !== 'boolean') {
+      return res.status(400).json({ message: 'autoDebit must be a boolean value' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Update user's auto-debit preference
+    user.autoDebit = autoDebit;
+    await user.save();
+
+    return res.json({
+      message: 'Auto-debit preference updated',
+      autoDebit: user.autoDebit
+    });
+  } catch (error) {
+    console.error('Error updating auto-debit preference:', error);
+    return res.status(500).json({ 
+      message: 'Failed to update auto-debit preference',
       error: error.message 
     });
   }

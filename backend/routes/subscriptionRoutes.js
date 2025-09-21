@@ -1,5 +1,5 @@
 import express from 'express';
-import { createSubscription, getSubscriptionStatus, cancelSubscription, confirmPayment, updateSubscriptionPaymentMethod, fixSubscriptionStatus, getSubscriptionDetails } from '../controllers/subscriptionController.js';
+import { createSubscription, getSubscriptionStatus, cancelSubscription, confirmPayment, updateSubscriptionPaymentMethod, fixSubscriptionStatus, getSubscriptionDetails, createSetupIntent, setAutoDebit } from '../controllers/subscriptionController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -24,6 +24,9 @@ router.post('/fix-status', protect, fixSubscriptionStatus);
 
 // POST /subscriptions/confirm - Manually confirm payment and activate subscription
 router.post('/confirm', protect, confirmPayment);
+
+// PUT /subscriptions/auto-debit - Toggle auto-debit preference
+router.put('/auto-debit', protect, setAutoDebit);
 
 // Webhook is registered at app level in server.js before JSON body parsing
 
