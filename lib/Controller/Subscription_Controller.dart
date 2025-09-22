@@ -19,22 +19,85 @@ class SubscriptionController {
   String? subscriptionStatus;
   bool autoDebitEnabled = false;
   bool hasDefaultPaymentMethod = false;
+  List<SubscriptionTier> _cachedTiers = [];
+  bool _isLoadingTiers = false;
+
   List<SubscriptionTier> getSubscriptionTiers() {
-    return [
+    // Return cached tiers if available, otherwise return empty list
+    // The UI should call loadSubscriptionTiers() first
+    return _cachedTiers;
+  }
+
+  Future<List<SubscriptionTier>> loadSubscriptionTiers() async {
+    if (_isLoadingTiers) {
+      // If already loading, wait for it to complete
+      while (_isLoadingTiers) {
+        await Future.delayed(Duration(milliseconds: 100));
+      }
+      return _cachedTiers;
+    }
+
+    _isLoadingTiers = true;
+    
+    try {
+      final response = await http.get(
+        Uri.parse("${ApiConstants.resolvedApiUrl}/subscription-plans/current"),
+        headers: {
+          "Content-Type": "application/json"
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          final planData = data['data'];
+          
+          // Convert backend data to SubscriptionTier format
+          final tier = SubscriptionTier(
+            title: planData['title'] ?? 'Standard',
+            monthlyCost: planData['monthlyCost'] ?? '\$5.00',
+            annualCost: planData['annualCost'] ?? '\$54.00',
+            adSupported: planData['adSupported'] ?? 'No',
+            audioFileType: planData['audioFileType'] ?? '320 kbps MP3',
+            offlineDownloads: planData['offlineDownloads'] ?? '0',
+            binauralTracks: planData['binauralTracks'] ?? '3 Every',
+            soundscapeTracks: planData['soundscapeTracks'] ?? 'All',
+            dynamicAudioFeatures: planData['dynamicAudioFeatures'] ?? 'No',
+            customTrackRequests: planData['customTrackRequests'] ?? 'No',
+            priceId: planData['priceId'] ?? ApiConstants.priceId,
+          );
+          
+          _cachedTiers = [tier];
+          return _cachedTiers;
+        } else {
+          throw Exception('Invalid response format from server');
+        }
+      } else {
+        throw Exception('Failed to load subscription plans: ${response.statusCode}');
+      }
+    } catch (e) {
+      print("Error loading subscription tiers: $e");
       
-      SubscriptionTier(
-          title: 'Standard',
-          monthlyCost: '\$5.00',
-          annualCost: '\$54.00',
-          adSupported: 'No',
-          audioFileType: '320 kbps MF3',
-          offlineDownloads: '0',
-          binauralTracks: '3 Every',
-          soundscapeTracks: 'All',
-          dynamicAudioFeatures: 'No',
-          customTrackRequests: 'No',
-          priceId: ApiConstants.priceId),
-       ];
+      // Fallback to hardcoded values if API fails
+      final fallbackTier = SubscriptionTier(
+        title: 'Standard',
+        monthlyCost: '\$5.00',
+        annualCost: '\$54.00',
+        adSupported: 'No',
+        audioFileType: '320 kbps MP3',
+        offlineDownloads: '0',
+        binauralTracks: '3 Every',
+        soundscapeTracks: 'All',
+        dynamicAudioFeatures: 'No',
+        customTrackRequests: 'No',
+        priceId: ApiConstants.priceId,
+      );
+      
+      _cachedTiers = [fallbackTier];
+      return _cachedTiers;
+    } finally {
+      _isLoadingTiers = false;
+    }
   }
 
   Future<void> createSubscription(

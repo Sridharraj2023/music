@@ -8,16 +8,116 @@ import '../widgets/subscription_tier_card.dart';
 import 'Homepage_Screen.dart';
 import 'Login_Screen.dart';
 
-class SubscriptionTiersScreen extends StatelessWidget {
+class SubscriptionTiersScreen extends StatefulWidget {
+  const SubscriptionTiersScreen({super.key});
+
+  @override
+  State<SubscriptionTiersScreen> createState() => _SubscriptionTiersScreenState();
+}
+
+class _SubscriptionTiersScreenState extends State<SubscriptionTiersScreen> {
   final SubscriptionController _subscriptionController =
       SubscriptionController();
+  List<SubscriptionTier> tiers = [];
+  bool isLoading = true;
+  String? errorMessage;
 
-  SubscriptionTiersScreen({super.key});
+  @override
+  void initState() {
+    super.initState();
+    _loadSubscriptionTiers();
+  }
+
+  Future<void> _loadSubscriptionTiers() async {
+    try {
+      setState(() {
+        isLoading = true;
+        errorMessage = null;
+      });
+      
+      final loadedTiers = await _subscriptionController.loadSubscriptionTiers();
+      
+      setState(() {
+        tiers = loadedTiers;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Failed to load subscription plans: $e';
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final List<SubscriptionTier> tiers =
-        _subscriptionController.getSubscriptionTiers();
+    if (isLoading) {
+      return Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFF3A55F8), // Top blue
+                Color(0xFF6F41F3), // Middle purple
+                Color(0xFF8A2BE2), // Bottom violet
+              ],
+            ),
+          ),
+          child: const Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (errorMessage != null) {
+      return Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFF3A55F8), // Top blue
+                Color(0xFF6F41F3), // Middle purple
+                Color(0xFF8A2BE2), // Bottom violet
+              ],
+            ),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  color: Colors.white,
+                  size: 64,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  errorMessage!,
+                  style: const TextStyle(color: Colors.white),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: _loadSubscriptionTiers,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF6F41F3),
+                  ),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       body: Container(
