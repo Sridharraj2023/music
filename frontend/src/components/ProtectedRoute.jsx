@@ -23,8 +23,16 @@ function ProtectedRoute({ children, requiredRole, allowGuest = false }) {
       }
 
       try {
-        const res = await axios.get(`${import.meta.env.VITE_API_URL}/users/profile`, {
-          headers: { Authorization: `Bearer ${token}` },
+        // Use absolute URL in development, relative in production
+        const apiUrl = import.meta.env.DEV 
+          ? 'http://localhost:5000/api' 
+          : '/api';
+          
+        const res = await axios.get(`${apiUrl}/users/profile`, {
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` 
+          },
           withCredentials: true,
         });
         

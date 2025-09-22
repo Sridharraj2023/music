@@ -11,27 +11,73 @@ function Login({ setUserRole }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const apiUrl = import.meta.env.VITE_API_URL;
-    console.log('API URL:', apiUrl);
-    console.log('Login attempt:', { email, password });
-
+    setError(''); // Clear previous errors
+    
     try {
+      console.log('Login attempt:', { email });
+      
+      // Use absolute URL in development, relative in production
+      const apiUrl = import.meta.env.DEV 
+        ? 'http://localhost:5000/api' 
+        : '/api';
+      
       const res = await axios.post(
         `${apiUrl}/users/auth`,
         { email, password },
-        { withCredentials: true }
+        { 
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
       );
-      localStorage.setItem('token', res.data.token);
-      setUserRole(res.data.role);
-      console.log('Login success:', res.data);
-      if (res.data.role === 'admin') {
-        navigate('/admin');
+      
+      console.log('Login response:', res.data);
+      
+      if (res.data.token) {
+        localStorage.setItem('token', res.data.token);
+        console.log('Token stored in localStorage');
+        
+        if (res.data.role) {
+          console.log('Setting user role:', res.data.role);
+          setUserRole(res.data.role);
+          
+          if (res.data.role === 'admin') {
+            console.log('Navigating to /admin');
+            navigate('/admin');
+          } else {
+            console.log('Navigating to /user');
+            navigate('/user');
+          }
+        } else {
+          console.error('No role in response');
+          throw new Error('No role received from server');
+        }
       } else {
-        navigate('/user');
+        console.error('No token in response');
+        throw new Error('No token received');
       }
     } catch (err) {
-      console.error('Login error:', err.response?.data || err.message);
-      setError(err.response?.data?.message || 'Invalid email or password');
+      console.error('Login error:', err);
+      console.error('Error response:', err.response?.data);
+      
+      if (err.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        if (err.response.status === 401) {
+          setError('Invalid email or password');
+        } else if (err.response.data?.message) {
+          setError(err.response.data.message);
+        } else {
+          setError(`Server error: ${err.response.status}`);
+        }
+      } else if (err.request) {
+        // The request was made but no response was received
+        setError('Cannot connect to the server. Please check your connection.');
+      } else {
+        // Something happened in setting up the request
+        setError('An error occurred. Please try again.');
+      }
     }
   };
 

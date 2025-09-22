@@ -34,6 +34,17 @@ function Dashboard() {
         </div>
       </div>
 
+      {/* Subscription Plans Section */}
+      <div className="manage-section">
+        <h3>Manage Subscription Plans</h3>
+        <div className="dashboard-grid">
+          <Link to="/admin/manage-subscription-plans" className="module-card">
+            <h4 className="module-title">Manage Pricing</h4>
+            <p className="module-description">Create and manage subscription pricing plans.</p>
+          </Link>
+        </div>
+      </div>
+
       {/* Updated Users Section */}
       <div className="manage-section">
         <h3>Manage Users</h3>
