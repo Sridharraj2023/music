@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { showToast } from '../../utils/toast';
 import '../admin.css';
 
 function ViewCategories() {
@@ -33,7 +32,7 @@ function ViewCategories() {
         });
         setCategories(res.data);
       } catch (err) {
-        toast.error(err.response?.data?.message || 'Failed to fetch categories');
+        showToast.error(err.response?.data?.message || 'Failed to fetch categories');
       }
     };
     fetchCategories();
@@ -198,12 +197,12 @@ function ViewCategories() {
         withCredentials: true,
       });
       setCategories(categories.filter(cat => cat._id !== id));
-      toast.success('Category deleted successfully!');
+      showToast.success('Category deleted successfully!');
       if (currentCategories.length === 1 && currentPage > 1) {
         setCurrentPage(currentPage - 1);
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to delete category');
+      showToast.error(err.response?.data?.message || 'Failed to delete category');
     }
   };
 
@@ -218,22 +217,22 @@ function ViewCategories() {
     let hasError = false;
 
     if (!editName.trim()) {
-      toast.error('Category name is required');
+      showToast.error('Category name is required');
       hasError = true;
     }
 
     if (!editDescription.trim()) {
-      toast.error('Category description is required');
+      showToast.error('Category description is required');
       hasError = true;
     }
 
     editTypes.forEach((type, index) => {
       if (!type.name.trim()) {
-        toast.error(`Type name is required for type ${index + 1}`);
+        showToast.error(`Type name is required for type ${index + 1}`);
         hasError = true;
       }
       if (!type.description.trim()) {
-        toast.error(`Type description is required for type ${index + 1}`);
+        showToast.error(`Type description is required for type ${index + 1}`);
         hasError = true;
       }
     });
@@ -254,9 +253,9 @@ function ViewCategories() {
       );
       setCategories(categories.map(cat => (cat._id === id ? res.data : cat)));
       setEditingId(null);
-      toast.success('Category updated successfully!');
+      showToast.success('Category updated successfully!');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to update category');
+      showToast.error(err.response?.data?.message || 'Failed to update category');
     }
   };
 
@@ -289,7 +288,7 @@ function ViewCategories() {
         setCategories(categories.map(cat => (cat._id === categoryId ? res.data : cat)));
         setEditTypes(editTypes.filter((_, i) => i !== index));
       } catch (err) {
-        toast.error(err.response?.data?.message || 'Failed to delete type');
+        showToast.error(err.response?.data?.message || 'Failed to delete type');
       }
     } else {
       setEditTypes(editTypes.filter((_, i) => i !== index));
@@ -299,17 +298,6 @@ function ViewCategories() {
   return (
     <div className="card">
       <h2 className="card-title">Manage Categories</h2>
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-      />
       <div className="search-sort-container" style={{ display: 'flex', gap: '20px', marginBottom: '20px', alignItems: 'center' }}>
         <div className="search-container" style={{ position: 'relative', flex: '1' }}>
           <input

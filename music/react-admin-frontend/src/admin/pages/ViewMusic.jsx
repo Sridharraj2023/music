@@ -2,8 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { FaPlay, FaPause } from 'react-icons/fa';
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { showToast } from '../../utils/toast';
 import '../admin.css';
 import './ViewMusic.css';
 
@@ -43,7 +42,7 @@ function ViewMusic() {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        toast.error('Please log in to view music');
+        showToast.error('Please log in to view music');
         return;
       }
       const [musicRes, categoriesRes] = await Promise.all([
@@ -80,14 +79,14 @@ function ViewMusic() {
           'Missing or invalid releaseDate for items:',
           missingReleaseDates.map(m => ({ id: m._id, title: m.title }))
         );
-        toast.warn(`${missingReleaseDates.length} music items lack valid release dates, using createdAt`);
+        showToast.warning(`${missingReleaseDates.length} music items lack valid release dates, using createdAt`);
       }
       if (timeLessReleaseDates.length > 0) {
         console.warn(
           'releaseDate lacks time component for items:',
           timeLessReleaseDates.map(m => ({ id: m._id, title: m.title, releaseDate: m.releaseDate }))
         );
-        toast.warn(`${timeLessReleaseDates.length} music items have date-only release dates, time precision may be lost`);
+        showToast.warning(`${timeLessReleaseDates.length} music items have date-only release dates, time precision may be lost`);
       }
 
       setMusicList(musicRes.data);
@@ -116,7 +115,7 @@ function ViewMusic() {
       console.log('fetchMusic completed successfully');
     } catch (err) {
       console.error('Fetch music error:', err);
-      toast.error(err.response?.data?.message || 'Failed to fetch music');
+      showToast.error(err.response?.data?.message || 'Failed to fetch music');
     } finally {
       setIsLoading(false);
       console.log('fetchMusic finished, isLoading:', false);
@@ -351,12 +350,12 @@ function ViewMusic() {
         return newLoading;
       });
       loadedImagesRef.current.delete(id);
-      toast.success('Music deleted successfully!');
+      showToast.success('Music deleted successfully!');
       if (currentMusic.length === 1 && currentPage > 1) {
         setCurrentPage(currentPage - 1);
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to delete music');
+      showToast.error(err.response?.data?.message || 'Failed to delete music');
     }
   };
 
@@ -374,15 +373,15 @@ function ViewMusic() {
     let hasError = false;
 
     if (!editTitle.trim()) {
-      toast.error('Title is required');
+      showToast.error('Title is required');
       hasError = true;
     }
     if (!editArtist.trim()) {
-      toast.error('Artist is required');
+      showToast.error('Artist is required');
       hasError = true;
     }
     if (!editCategory) {
-      toast.error('Category is required');
+      showToast.error('Category is required');
       hasError = true;
     }
 
@@ -418,9 +417,9 @@ function ViewMusic() {
       setEditingId(null);
       setEditThumbnail(null);
       setEditAudio(null);
-      toast.success('Music updated successfully!');
+      showToast.success('Music updated successfully!');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to update music');
+      showToast.error(err.response?.data?.message || 'Failed to update music');
     }
   };
 
@@ -510,17 +509,6 @@ const togglePlayPause = async (id) => {
   return (
     <div className="view-music">
       <h2>View Music</h2>
-      <ToastContainer 
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-      />
       {isLoading ? (
         <div className="loader-container">
           <div className="loader"></div>

@@ -1,17 +1,16 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { showToast } from '../utils/toast';
 import './Login.css';
 
 function Login({ setUserRole }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(''); // Clear previous errors
     
     try {
       console.log('Login attempt:', { email });
@@ -37,6 +36,7 @@ function Login({ setUserRole }) {
       if (res.data.token) {
         localStorage.setItem('token', res.data.token);
         console.log('Token stored in localStorage');
+        showToast.success('Login successful!');
         
         if (res.data.role) {
           console.log('Setting user role:', res.data.role);
@@ -65,18 +65,22 @@ function Login({ setUserRole }) {
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
         if (err.response.status === 401) {
-          setError('Invalid email or password');
+          const errorMsg = 'Invalid email or password';
+          showToast.error(errorMsg);
         } else if (err.response.data?.message) {
-          setError(err.response.data.message);
+          showToast.error(err.response.data.message);
         } else {
-          setError(`Server error: ${err.response.status}`);
+          const errorMsg = `Server error: ${err.response.status}`;
+          showToast.error(errorMsg);
         }
       } else if (err.request) {
         // The request was made but no response was received
-        setError('Cannot connect to the server. Please check your connection.');
+        const errorMsg = 'Cannot connect to the server. Please check your connection.';
+        showToast.error(errorMsg);
       } else {
         // Something happened in setting up the request
-        setError('An error occurred. Please try again.');
+        const errorMsg = 'An error occurred. Please try again.';
+        showToast.error(errorMsg);
       }
     }
   };
@@ -85,7 +89,6 @@ function Login({ setUserRole }) {
     <div className="login-container">
       <div className="login-card">
         <h2>Login</h2>
-        {error && <p className="error">{error}</p>}
         <form onSubmit={handleSubmit}>
           <div>
             <label>Email:</label><br />

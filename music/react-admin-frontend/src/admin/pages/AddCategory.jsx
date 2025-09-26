@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { showToast } from '../../utils/toast';
 import '../admin.css';
 
 function AddCategory() {
@@ -35,24 +34,24 @@ function AddCategory() {
 
     // Check category name
     if (!name.trim()) {
-      toast.error('Category name is required');
+      showToast.error('Category name is required');
       hasError = true;
     }
 
     // Check category description
     if (!description.trim()) {
-      toast.error('Category description is required');
+      showToast.error('Category description is required');
       hasError = true;
     }
 
     // Check category types
     types.forEach((type, index) => {
       if (!type.name.trim()) {
-        toast.error(`Type name is required for type ${index + 1}`);
+        showToast.error(`Type name is required for type ${index + 1}`);
         hasError = true;
       }
       if (!type.description.trim()) {
-        toast.error(`Type description is required for type ${index + 1}`);
+        showToast.error(`Type description is required for type ${index + 1}`);
         hasError = true;
       }
     });
@@ -77,7 +76,7 @@ function AddCategory() {
         }
       );
 
-      toast.success('Category added successfully!');
+      showToast.success('Category added successfully!');
       setName('');
       setDescription('');
       setTypes([{ name: '', description: '' }]);
@@ -87,24 +86,13 @@ function AddCategory() {
         navigate(`/admin/view-categories?newCategory=true&categoryId=${res.data._id}`);
       }, 1000);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to add category');
+      showToast.error(err.response?.data?.message || 'Failed to add category');
     }
   };
 
   return (
     <div className="card">
       <h2 className="card-title">Add Category</h2>
-      <ToastContainer 
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-      />
       
       <form onSubmit={handleSubmit}>
         <div className="form-group">

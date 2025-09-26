@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { showToast } from '../../utils/toast';
 import '../admin.css';
 
 function ManageSubscriptionPlans() {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingPlan, setEditingPlan] = useState(null);
 
@@ -44,7 +44,7 @@ function ManageSubscriptionPlans() {
       const data = await response.json();
       setPlans(data.data || []);
     } catch (err) {
-      setError(err.message);
+      showToast.error(err.message);
     } finally {
       setLoading(false);
     }
@@ -60,7 +60,7 @@ function ManageSubscriptionPlans() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+    //Edit plan
     try {
       const url = editingPlan 
         ? `/api/subscription-plans/admin/subscription-plans/${editingPlan._id}`
@@ -86,10 +86,9 @@ function ManageSubscriptionPlans() {
 
       await fetchPlans();
       resetForm();
-      alert(editingPlan ? 'Subscription plan updated successfully!' : 'Subscription plan created successfully!');
+      showToast.success(editingPlan ? 'Subscription plan updated successfully!' : 'Subscription plan created successfully!');
     } catch (err) {
-      setError(err.message);
-      alert('Error: ' + err.message);
+      showToast.error('Error: ' + err.message);
     }
   };
 
@@ -129,10 +128,9 @@ function ManageSubscriptionPlans() {
       }
 
       await fetchPlans();
-      alert('Subscription plan deactivated successfully!');
+      showToast.success('Subscription plan deactivated successfully!');
     } catch (err) {
-      setError(err.message);
-      alert('Error: ' + err.message);
+      showToast.error('Error: ' + err.message);
     }
   };
 
@@ -148,10 +146,9 @@ function ManageSubscriptionPlans() {
       }
 
       await fetchPlans();
-      alert('Subscription plan activated successfully!');
+      showToast.success('Subscription plan activated successfully!');
     } catch (err) {
-      setError(err.message);
-      alert('Error: ' + err.message);
+      showToast.error('Error: ' + err.message);
     }
   };
 
@@ -167,10 +164,9 @@ function ManageSubscriptionPlans() {
       }
 
       await fetchPlans();
-      alert('Default subscription plan updated successfully!');
+      showToast.success('Default subscription plan updated successfully!');
     } catch (err) {
-      setError(err.message);
-      alert('Error: ' + err.message);
+      showToast.error('Error: ' + err.message);
     }
   };
 
@@ -210,7 +206,6 @@ function ManageSubscriptionPlans() {
         </button>
       </div>
 
-      {error && <div className="error-message">{error}</div>}
 
       {showCreateForm && (
         <div className="modal-overlay">

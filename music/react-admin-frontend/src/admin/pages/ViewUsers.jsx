@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { showToast } from '../../utils/toast';
 import '../admin.css';
 
 
 function ViewUsers() {
   const [users, setUsers] = useState([]);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [usersPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState('');
@@ -27,7 +26,7 @@ function ViewUsers() {
         });
         setUsers(res.data.filter(user => user.role !== 'admin'));
       } catch (err) {
-        setError(err.response?.data?.message || 'Failed to fetch users');
+        showToast.error(err.response?.data?.message || 'Failed to fetch users');
       }
     };
     fetchUsers();
@@ -161,22 +160,18 @@ function ViewUsers() {
         withCredentials: true,
       });
       setUsers(users.filter(user => user._id !== userId));
-      setSuccess('User deleted successfully');
-      setTimeout(() => setSuccess(''), 3000);
+      showToast.success('User deleted successfully');
       if (currentUsers.length === 1 && currentPage > 1) {
         setCurrentPage(currentPage - 1);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Delete failed');
-      setTimeout(() => setError(''), 3000);
+      showToast.error(err.response?.data?.message || 'Delete failed');
     }
   };
 
   return (
     <div className="card">
       <h2 className="card-title">Manage Users</h2>
-      {error && <div className="error-message">{error}</div>}
-      {success && <div className="success-message">{success}</div>}
 
       <div className="search-sort-container" style={{ display: 'flex', gap: '20px', marginBottom: '20px', alignItems: 'center' }}>
         <div className="search-container" style={{ position: 'relative', flex: '1' }}>

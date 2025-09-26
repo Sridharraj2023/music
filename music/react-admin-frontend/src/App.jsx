@@ -1,6 +1,8 @@
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import Login from './components/Login.jsx';
 import Signup from './components/Signup.jsx';
 import AdminLayout from './admin/components/AdminLayout.jsx';
@@ -60,6 +62,18 @@ function App() {
 
   return (
     <div className="container">
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
       <Routes>
         <Route path="/login" element={<Login setUserRole={setUserRole} />} />
         <Route path="/signup" element={<Signup setUserRole={setUserRole} />} />

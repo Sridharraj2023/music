@@ -1,23 +1,22 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { showToast } from '../utils/toast';
 import './Signup.css';
 
 function Signup({ setUserRole }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(''); // Clear previous errors
     
     try {
       console.log('Signup attempt:', { name, email });
       
-      // Use absolute URL in development, relative in production
+      // Use absolute URL in development, relative in production and 
       const apiUrl = import.meta.env.DEV 
         ? 'http://localhost:5000/api' 
         : '/api';
@@ -38,6 +37,7 @@ function Signup({ setUserRole }) {
       if (res.data.token) {
         localStorage.setItem('token', res.data.token);
         console.log('Token stored in localStorage');
+        showToast.success('Account created successfully!');
         
         if (res.data.role) {
           console.log('Setting user role:', res.data.role);
@@ -64,16 +64,20 @@ function Signup({ setUserRole }) {
       
       if (err.response) {
         if (err.response.status === 400 && err.response.data?.message === 'User already exists') {
-          setError('This email is already registered. Please log in instead.');
+          const errorMsg = 'This email is already registered. Please log in instead.';
+          showToast.error(errorMsg);
         } else if (err.response.data?.message) {
-          setError(err.response.data.message);
+          showToast.error(err.response.data.message);
         } else {
-          setError(`Server error: ${err.response.status}`);
+          const errorMsg = `Server error: ${err.response.status}`;
+          showToast.error(errorMsg);
         }
       } else if (err.request) {
-        setError('Cannot connect to the server. Please check your connection.');
+        const errorMsg = 'Cannot connect to the server. Please check your connection.';
+        showToast.error(errorMsg);
       } else {
-        setError('An error occurred. Please try again.');
+        const errorMsg = 'An error occurred. Please try again.';
+        showToast.error(errorMsg);
       }
     }
   };
@@ -82,7 +86,6 @@ function Signup({ setUserRole }) {
     <div className="signup-container">
       <div className="signup-card">
         <h2>Sign Up</h2>
-        {error && <p className="error">{error}</p>}
         <form onSubmit={handleSubmit}>
           <div>
             <label>Name:</label> <br />

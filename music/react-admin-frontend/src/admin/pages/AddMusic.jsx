@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { showToast } from '../../utils/toast';
 import '../admin.css';
 
 function AddMusic() {
@@ -37,7 +36,7 @@ function AddMusic() {
         }
       } catch (err) {
         console.error('Fetch categories error:', err);
-        toast.error('Failed to fetch categories');
+        showToast.error('Failed to fetch categories');
       }
     };
     fetchCategories();
@@ -52,7 +51,7 @@ function AddMusic() {
     const fileExtension = selectedFile.name.slice(((selectedFile.name.lastIndexOf(".") - 1) >>> 0) + 2).toLowerCase();
     
     if (!validMimeTypes.includes(selectedFile.type) || !validExtensions.includes('.' + fileExtension)) {
-      toast.error('Only MP3 and WAV files are allowed');
+      showToast.error('Only MP3 and WAV files are allowed');
       setFile(null);
       setDuration(0);
       setDisplayDuration('');
@@ -71,7 +70,7 @@ function AddMusic() {
       setDisplayDuration(`${minutes}:${seconds.toString().padStart(2, '0')}`);
     };
     audio.onerror = () => {
-      toast.error('Could not read audio file');
+      showToast.error('Could not read audio file');
       setFile(null);
       setDuration(0);
       setDisplayDuration('');
@@ -100,37 +99,37 @@ function AddMusic() {
     let hasError = false;
 
     if (!title.trim()) {
-      toast.error('Title is required');
+      showToast.error('Title is required');
       hasError = true;
     }
     if (!artist.trim()) {
-      toast.error('Artist is required');
+      showToast.error('Artist is required');
       hasError = true;
     }
     if (!category) {
-      toast.error('Category is required');
+      showToast.error('Category is required');
       hasError = true;
     }
     if (!categoryType) {
       const selectedCategory = categories.find(cat => cat._id === category);
       if (selectedCategory && selectedCategory.types.length > 0) {
-        toast.error('Category type is required');
+        showToast.error('Category type is required');
         hasError = true;
       } else {
-        toast.error('Selected category has no types available');
+        showToast.error('Selected category has no types available');
         hasError = true;
       }
     }
     if (!file) {
-      toast.error('Audio file is required');
+      showToast.error('Audio file is required');
       hasError = true;
     }
     if (!thumbnail) {
-      toast.error('Thumbnail is required');
+      showToast.error('Thumbnail is required');
       hasError = true;
     }
     if (!releaseDate) {
-      toast.error('Release date is required');
+      showToast.error('Release date is required');
       hasError = true;
     }
 
@@ -160,7 +159,7 @@ function AddMusic() {
  		 withCredentials:true
 	});
 
-      toast.success('Music added successfully!');
+      showToast.success('Music added successfully!');
       setTitle('');
       setArtist('');
       setFile(null);
@@ -177,7 +176,7 @@ function AddMusic() {
         navigate(`/admin/view-music?newMusicId=${res.data._id}`);
       }, 1000);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to add music');
+      showToast.error(err.response?.data?.message || 'Failed to add music');
     }
   };
 
@@ -186,17 +185,6 @@ function AddMusic() {
   return (
     <div className="card">
       <h2 className="card-title">Add Music</h2>
-      <ToastContainer 
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-      />
       
       <form onSubmit={handleSubmit}>
         <div className="form-group">
