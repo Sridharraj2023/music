@@ -113,8 +113,13 @@ import 'services/notification_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load environment variables
-  await dotenv.load(fileName: ".env");
+  // Load environment variables (optional - won't crash if .env file missing)
+  try {
+    await dotenv.load(fileName: ".env");
+    print("Environment variables loaded from .env file");
+  } catch (e) {
+    print("No .env file found, using default values: $e");
+  }
 
   // Debug: Print loaded environment variables
   ApiConstants.printEnvVars();
@@ -131,9 +136,13 @@ void main() async {
   Stripe.publishableKey = ApiConstants.publishKey;
   print("Stripe initialized with key: ${Stripe.publishableKey}");
 
-  // Initialize notification service
-  await NotificationService().initialize();
-  print("Notification service initialized");
+  // Initialize notification service (optional - won't crash if Firebase not configured)
+  try {
+    await NotificationService().initialize();
+    print("Notification service initialized");
+  } catch (e) {
+    print("Notification service initialization failed (Firebase not configured): $e");
+  }
 
   runApp(const MyApp());
 }

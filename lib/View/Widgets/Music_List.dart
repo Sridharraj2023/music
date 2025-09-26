@@ -72,7 +72,23 @@ class MusicList extends StatelessWidget {
                           width: 100,
                           height: 100,
                           fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[300],
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                            );
+                          },
                           errorBuilder: (context, error, stackTrace) {
+                            print('Image load error for ${item.title}: $error');
+                            print('Image URL: ${item.imageUrl}');
                             return Container(
                               width: 100,
                               height: 100,

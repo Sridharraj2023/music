@@ -545,7 +545,6 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                             Get.to(() => FullAudioPlayerScreen(
                                   isBinaural: label == 'binaural',
                                   track: track,
-                                  musics: widget.musicList,
                                 ));
                           },
                           child: const Icon(Icons.fullscreen,

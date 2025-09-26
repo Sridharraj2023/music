@@ -80,13 +80,13 @@ class SubscriptionController {
       
       // Fallback to hardcoded values if API fails
       final fallbackTier = SubscriptionTier(
-        title: 'Standard',
-        monthlyCost: '\$5.00',
-        annualCost: '\$54.00',
+        title: 'Premium Sep 25',
+        monthlyCost: '\$30.00',
+        annualCost: '\$330.00',
         adSupported: 'No',
-        audioFileType: '320 kbps MP3',
+        audioFileType: '320 kbps MF3',
         offlineDownloads: '0',
-        binauralTracks: '3 Every',
+        binauralTracks: '4 Every',
         soundscapeTracks: 'All',
         dynamicAudioFeatures: 'No',
         customTrackRequests: 'No',

@@ -6,34 +6,12 @@ import path from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Try multiple paths to find .env file
-const envPaths = [
-  path.join(__dirname, '.env'),
-  path.join(__dirname, '..', '.env'),
-  path.join(process.cwd(), '.env'),
-  path.join(process.cwd(), 'Backend-Server', 'music', 'backend', '.env')
-];
-
-console.log('Looking for .env file in:');
-envPaths.forEach(envPath => {
-  console.log('-', envPath);
-});
-
 // Load .env from the backend directory
 const result = dotenv.config({ path: path.join(__dirname, '.env') });
 if (result.error) {
   console.error('Error loading .env file:', result.error);
 } else {
   console.log('.env file loaded successfully');
-}
-
-// Also try to manually read the file to verify it exists
-import fs from 'fs';
-try {
-  const envContent = fs.readFileSync(path.join(__dirname, '.env'), 'utf8');
-  console.log('Manual file read successful. First 100 chars:', envContent.substring(0, 100));
-} catch (fileError) {
-  console.error('Manual file read failed:', fileError.message);
 }
 
 import express from 'express';
