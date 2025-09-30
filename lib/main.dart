@@ -187,7 +187,26 @@ class _SplashScreenState extends State<SplashScreen> {
         final status =
             await _subscriptionController.checkSubscriptionStatus(userEmail!);
 
+        // Check if user has made a recent payment as a fallback
+        String? paymentDateStr = prefs.getString('payment_date');
+        bool hasRecentPayment = false;
+        
+        if (paymentDateStr != null) {
+          try {
+            DateTime paymentDate = DateTime.parse(paymentDateStr);
+            DateTime now = DateTime.now();
+            hasRecentPayment = now.difference(paymentDate).inDays < 7;
+            print("Splash check - Payment date: $paymentDateStr, Has recent payment: $hasRecentPayment");
+          } catch (e) {
+            print("Error parsing payment date during splash: $e");
+          }
+        }
+
         if (status != null && status['isActive'] == true) {
+          Get.off(() => const HomePage());
+        } else if (hasRecentPayment) {
+          // User has made a recent payment, allow access even if subscription status is unclear
+          print("Recent payment found during splash - redirecting to home");
           Get.off(() => const HomePage());
         } else {
           // If inactive or unknown

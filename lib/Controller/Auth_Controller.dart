@@ -99,20 +99,48 @@ class AuthController {
             SubscriptionController();
         final status =
             await _subscriptionController.checkSubscriptionStatus(email);
+        
+        // Check if user has made a recent payment as a fallback
+        String? paymentDateStr = prefs.getString('payment_date');
+        bool hasRecentPayment = false;
+        
+        if (paymentDateStr != null) {
+          try {
+            DateTime paymentDate = DateTime.parse(paymentDateStr);
+            DateTime now = DateTime.now();
+            hasRecentPayment = now.difference(paymentDate).inDays < 7;
+            print("Login check - Payment date: $paymentDateStr, Has recent payment: $hasRecentPayment");
+          } catch (e) {
+            print("Error parsing payment date during login: $e");
+          }
+        }
+        
         if (status != null) {
           if (status['isActive'] == true) {
             // User is authenticated and subscription is active
             Get.off(() => const HomePage());
           } else if (status['isActive'] == false) {
             // User is authenticated but subscription is inactive
-            Get.off(() => SubscriptionTiersScreen());
+            // Check if they have a recent payment as a fallback
+            if (hasRecentPayment) {
+              print("Subscription inactive but recent payment found - redirecting to home");
+              Get.off(() => const HomePage());
+            } else {
+              Get.off(() => SubscriptionTiersScreen());
+            }
           } else {
             // User is authenticated but subscription status is unknown
             Get.off(() => SubscriptionTiersScreen());
           }
         } else {
           // User is authenticated but subscription status is unknown
-          Get.off(() => SubscriptionTiersScreen());
+          // Check if they have a recent payment as a fallback
+          if (hasRecentPayment) {
+            print("No subscription status but recent payment found - redirecting to home");
+            Get.off(() => const HomePage());
+          } else {
+            Get.off(() => SubscriptionTiersScreen());
+          }
         }
       } else {
         // Show error message

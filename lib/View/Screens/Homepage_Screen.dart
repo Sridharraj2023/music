@@ -15,6 +15,7 @@ import 'package:elevate/View/Widgets/Search_Bar.dart';
 import 'package:elevate/View/Widgets/Tab_Bar.dart';
 import 'package:elevate/View/Widgets/audio_player_widget.dart';
 import 'package:elevate/View/Widgets/subscription_status.dart';
+import 'package:elevate/View/Screens/Subscription_Details_Screen.dart';
 import 'package:elevate/View/Screens/Notification_Preferences_Screen.dart';
 import 'package:elevate/View/Screens/Notification_History_Screen.dart';
 import 'package:flutter/material.dart';
@@ -123,38 +124,20 @@ class _HomePageState extends State<HomePage>
                 ],
               ),
             ),
-            // Subscription Status Section
-            Container(
-              margin: EdgeInsets.all(16.0),
-              padding: EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.subscriptions, color: Color(0xFF6F41F3), size: 20),
-                      SizedBox(width: 8),
-                      Text(
-                        "Subscription Status",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 12),
-                  SubscriptionStatus(),
-                ],
-              ),
-            ),
             Divider(),
+            ListTile(
+              leading: Icon(Icons.subscriptions, color: Color(0xFF6F41F3)),
+              title: Text("Subscription Details"),
+              onTap: () {
+                Navigator.pop(context); // Close drawer
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SubscriptionDetailsScreen(),
+                  ),
+                );
+              },
+            ),
             ListTile(
               leading: Icon(Icons.notifications, color: Color(0xFF6F41F3)),
               title: Text("Notification Preferences"),

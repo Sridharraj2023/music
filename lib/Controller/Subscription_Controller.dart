@@ -467,16 +467,88 @@ class SubscriptionController {
       final subscription = subscriptionData['subscription'];
       final status = subscription['status'];
       
-      // Only consider 'active' and 'trialing' as valid subscription statuses
-      // 'incomplete' means payment hasn't been completed yet
-      final isActive = status == 'active' || status == 'trialing';
+      // Check if user has made a recent payment by looking at payment date
+      String? paymentDateStr = prefs.getString('payment_date');
+      bool hasRecentPayment = false;
+      
+      if (paymentDateStr != null) {
+        try {
+          DateTime paymentDate = DateTime.parse(paymentDateStr);
+          DateTime now = DateTime.now();
+          // Consider payment valid if made within last 7 days
+          hasRecentPayment = now.difference(paymentDate).inDays < 7;
+          print("Payment date: $paymentDateStr, Has recent payment: $hasRecentPayment");
+        } catch (e) {
+          print("Error parsing payment date: $e");
+        }
+      }
+      
+      // Enhanced subscription status checking
+      bool isActive = false;
+      
+      if (status == 'active' || status == 'trialing') {
+        // Definitely active
+        isActive = true;
+      } else if (hasRecentPayment) {
+        // If user has made a recent payment, trust that over Stripe's potentially outdated status
+        print("Recent payment found - treating subscription as active regardless of Stripe status");
+        isActive = true;
+        
+        // Still try to fix the status in the background for future consistency
+        if (status == 'incomplete' || status == 'incomplete_expired') {
+          print("Attempting to fix Stripe status in background...");
+          try {
+            final fixResponse = await http.post(
+              Uri.parse("${ApiConstants.resolvedApiUrl}/subscriptions/fix-status"),
+              headers: {
+                "Authorization": "Bearer $token",
+              },
+            );
+            
+            if (fixResponse.statusCode == 200) {
+              final fixData = jsonDecode(fixResponse.body);
+              if (fixData['subscription'] != null && fixData['subscription']['isActive'] == true) {
+                print("Background fix successful - Stripe status updated");
+                // Update the subscription data with the fixed status
+                subscription['status'] = 'active';
+              }
+            }
+          } catch (fixError) {
+            print("Background fix failed but subscription remains active: $fixError");
+          }
+        }
+      } else if (status == 'incomplete' || status == 'incomplete_expired') {
+        // No recent payment and incomplete status - try to fix
+        print("Subscription incomplete with no recent payment, attempting to fix status...");
+        try {
+          final fixResponse = await http.post(
+            Uri.parse("${ApiConstants.resolvedApiUrl}/subscriptions/fix-status"),
+            headers: {
+              "Authorization": "Bearer $token",
+            },
+          );
+          
+          if (fixResponse.statusCode == 200) {
+            final fixData = jsonDecode(fixResponse.body);
+            if (fixData['subscription'] != null && fixData['subscription']['isActive'] == true) {
+              print("Subscription status fixed successfully");
+              isActive = true;
+              // Update the subscription data with the fixed status
+              subscription['status'] = 'active';
+            }
+          }
+        } catch (fixError) {
+          print("Error fixing subscription status: $fixError");
+        }
+      }
       
       // Debug: Log subscription status for troubleshooting
       print("Subscription status: $status");
       print("Is active: $isActive");
+      print("Has recent payment: $hasRecentPayment");
       
       // If subscription is incomplete, it means payment wasn't completed
-      if (status == 'incomplete') {
+      if (status == 'incomplete' && !hasRecentPayment) {
         print("Warning: Subscription is incomplete - payment not completed");
       }
 

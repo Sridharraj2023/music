@@ -20,6 +20,8 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
   bool isLoading = false;
   bool _autoDebit = false;
   bool _hasDefaultPaymentMethod = false;
+  Map<String, dynamic>? _subscriptionStatus;
+  bool _isSubscriptionActive = false;
 
   @override
   void initState() {
@@ -27,6 +29,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
     _loadPaymentDate();
     _startCountdown();
     _loadBillingStatus();
+    _loadSubscriptionStatus();
   }
 
   @override
@@ -44,6 +47,54 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
       });
     } catch (e) {
       // Silent fail to avoid blocking screen; can toast if needed
+    }
+  }
+
+  Future<void> _loadSubscriptionStatus() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? userEmail = prefs.getString('email');
+      
+      print('Loading subscription status for email: $userEmail');
+      
+      if (userEmail != null) {
+        // First try the enhanced checkSubscriptionStatus method
+        final status = await _subscriptionController.checkSubscriptionStatus(userEmail);
+        print('Enhanced status check result: $status');
+        
+        // If that doesn't work, try the getSubscriptionStatus method
+        if (status == null || status['isActive'] != true) {
+          print('Enhanced check failed, trying getSubscriptionStatus...');
+          try {
+            final fullStatus = await _subscriptionController.getSubscriptionStatus();
+            print('Full subscription status: $fullStatus');
+            
+            if (fullStatus['subscription'] != null) {
+              final subscription = fullStatus['subscription'];
+              final isActive = subscription['isActive'] ?? false;
+              print('Subscription isActive from backend: $isActive');
+              
+              setState(() {
+                _subscriptionStatus = {'isActive': isActive};
+                _isSubscriptionActive = isActive;
+              });
+              return;
+            }
+          } catch (e) {
+            print('Error with getSubscriptionStatus: $e');
+          }
+        }
+        
+        setState(() {
+          _subscriptionStatus = status;
+          _isSubscriptionActive = status?['isActive'] ?? false;
+        });
+        
+        print('Final subscription status: $_subscriptionStatus');
+        print('Final isActive: $_isSubscriptionActive');
+      }
+    } catch (e) {
+      print('Error loading subscription status: $e');
     }
   }
 
@@ -119,11 +170,55 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
       
       // Reload payment date and recalculate countdown
       await _loadPaymentDate();
+      // Reload subscription status
+      await _loadSubscriptionStatus();
       
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error refreshing subscription: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _fixSubscriptionStatus() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      // Try to fix the subscription status
+      final result = await _subscriptionController.fixSubscriptionStatus();
+      print('Fix subscription status result: $result');
+      
+      if (result) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Subscription status fixed successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        // Reload the subscription status
+        await _loadSubscriptionStatus();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to fix subscription status. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error fixing subscription status: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -205,17 +300,17 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Status: INCOMPLETE',
+                      Text(
+                        _isSubscriptionActive ? 'Status: ACTIVE' : 'Status: ${_getStatusText()}',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Colors.orange,
+                          color: _isSubscriptionActive ? Colors.green : Colors.orange,
                         ),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        'Payment received. Finalizing activation...',
+                      Text(
+                        _getStatusMessage(),
                         style: TextStyle(
                           fontSize: 14,
                           color: Color(0xFF666666),
@@ -312,7 +407,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                       _buildInfoRow(
                         'Payment Date',
                         paymentDate != null 
-                            ? '${paymentDate!.day}/${paymentDate!.month}/${paymentDate!.year}'
+                            ? '${paymentDate!.day.toString().padLeft(2, '0')}/${paymentDate!.month.toString().padLeft(2, '0')}/${paymentDate!.year}'
                             : 'Not available',
                         Icons.payment,
                       ),
@@ -323,7 +418,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                       _buildInfoRow(
                         'Expiry Date',
                         expiryDate != null 
-                            ? '${expiryDate!.day}/${expiryDate!.month}/${expiryDate!.year}'
+                            ? '${expiryDate!.day.toString().padLeft(2, '0')}/${expiryDate!.month.toString().padLeft(2, '0')}/${expiryDate!.year}'
                             : 'Not available',
                         Icons.event,
                       ),
@@ -489,6 +584,34 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                 const SizedBox(height: 20),
                 
                 // Action Buttons
+                if (!_isSubscriptionActive) ...[
+                  // Show fix status button only if subscription is not active
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: isLoading ? null : _fixSubscriptionStatus,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: isLoading 
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Text('Fix Subscription Status'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 Row(
                   children: [
                     Expanded(
@@ -560,6 +683,33 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
           ),
         ) ??
         false;
+  }
+
+  String _getStatusText() {
+    if (_subscriptionStatus == null) return 'UNKNOWN';
+    return _subscriptionStatus!['isActive'] == true ? 'ACTIVE' : 'INCOMPLETE';
+  }
+
+  String _getStatusMessage() {
+    if (_isSubscriptionActive) {
+      // Check if this is due to recent payment override
+      if (paymentDate != null) {
+        try {
+          DateTime now = DateTime.now();
+          int daysSincePayment = now.difference(paymentDate!).inDays;
+          
+          if (daysSincePayment < 7) {
+            return 'Your subscription is active. Payment confirmed and service restored.';
+          }
+        } catch (e) {
+          // Fall through to default message
+        }
+      }
+      
+      return 'Your subscription is active and working properly.';
+    } else {
+      return 'Payment received. Finalizing activation...';
+    }
   }
 
   Widget _buildInfoRow(String label, String value, IconData icon) {
