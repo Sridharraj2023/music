@@ -1,5 +1,6 @@
 import 'package:elevate/Model/music_item.dart';
 import 'package:elevate/View/Screens/Binaural_Screen.dart';
+import 'package:elevate/View/Widgets/SubscriptionGuard.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
@@ -19,7 +20,9 @@ class MusicPage extends StatelessWidget {
     final recentlyPlayed = controller.getRecentlyPlayed();
     // final genres = controller.getGenres();
 
-    return Scaffold(
+    return SubscriptionGuard(
+      customMessage: 'Please subscribe to access music content',
+      child: Scaffold(
       backgroundColor: Colors.transparent,
       body: Padding(
         padding: const EdgeInsets.all(10.0),
@@ -109,6 +112,7 @@ class MusicPage extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }

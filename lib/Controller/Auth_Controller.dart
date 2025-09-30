@@ -115,32 +115,27 @@ class AuthController {
           }
         }
         
-        if (status != null) {
-          if (status['isActive'] == true) {
-            // User is authenticated and subscription is active
-            Get.off(() => const HomePage());
-          } else if (status['isActive'] == false) {
-            // User is authenticated but subscription is inactive
-            // Check if they have a recent payment as a fallback
-            if (hasRecentPayment) {
-              print("Subscription inactive but recent payment found - redirecting to home");
-              Get.off(() => const HomePage());
-            } else {
-              Get.off(() => SubscriptionTiersScreen());
-            }
-          } else {
-            // User is authenticated but subscription status is unknown
-            Get.off(() => SubscriptionTiersScreen());
-          }
+        // For new users, we need to be more strict about subscription access
+        bool shouldAllowAccess = false;
+        
+        if (status != null && status['isActive'] == true) {
+          // User has active subscription
+          shouldAllowAccess = true;
+          print("User has active subscription - allowing access");
+        } else if (hasRecentPayment) {
+          // User has made a recent payment (within 7 days)
+          shouldAllowAccess = true;
+          print("User has recent payment - allowing access");
         } else {
-          // User is authenticated but subscription status is unknown
-          // Check if they have a recent payment as a fallback
-          if (hasRecentPayment) {
-            print("No subscription status but recent payment found - redirecting to home");
-            Get.off(() => const HomePage());
-          } else {
-            Get.off(() => SubscriptionTiersScreen());
-          }
+          // No active subscription and no recent payment
+          shouldAllowAccess = false;
+          print("No active subscription and no recent payment - redirecting to subscription page");
+        }
+        
+        if (shouldAllowAccess) {
+          Get.off(() => const HomePage());
+        } else {
+          Get.off(() => SubscriptionTiersScreen());
         }
       } else {
         // Show error message

@@ -59,6 +59,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../Controller/Binaural_controller.dart';
 import '../Widgets/Gradient_Container.dart';
 import '../Widgets/Round_option_button.dart';
+import '../Widgets/SubscriptionGuard.dart';
 import 'package:http/http.dart' as http;
 
 class BinauralPage extends StatelessWidget {
@@ -66,7 +67,9 @@ class BinauralPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GradientContainer(
+    return SubscriptionGuard(
+      customMessage: 'Please subscribe to access binaural content',
+      child: GradientContainer(
       child: FutureBuilder<List<Category>>(
         future: _binauralController.fetchBinauralCategory(),
         builder: (context, snapshot) {
@@ -122,6 +125,7 @@ class BinauralPage extends StatelessWidget {
           }
         },
       ),
+      ),
     );
   }
 }
@@ -145,7 +149,9 @@ class BinauralSongsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SubscriptionGuard(
+      customMessage: 'Please subscribe to access binaural songs',
+      child: Scaffold(
       body: GradientContainer(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -290,6 +296,7 @@ class BinauralSongsScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'dart:developer';
 
 import 'package:elevate/Controller/BottomBar_Controller.dart';
 import 'package:elevate/Controller/Home_Controller.dart';
+import 'package:elevate/Controller/Subscription_Controller.dart';
 import 'package:elevate/Model/music_item.dart';
 import 'package:elevate/View/Screens/Binaural_Screen.dart';
 import 'package:elevate/View/Screens/Login_Screen.dart';
@@ -51,6 +52,7 @@ class _HomePageState extends State<HomePage>
   void initState() {
     super.initState();
     drawerData();
+    _checkSubscriptionAccess();
 
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
@@ -84,6 +86,61 @@ class _HomePageState extends State<HomePage>
     name = prefs.getString('name');
     email = prefs.getString('email');
     setState(() {});
+  }
+
+  Future<void> _checkSubscriptionAccess() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? userEmail = prefs.getString('email');
+      
+      if (userEmail != null) {
+        final SubscriptionController _subscriptionController = SubscriptionController();
+        final status = await _subscriptionController.checkSubscriptionStatus(userEmail);
+        
+        // Check if user has made a recent payment as a fallback
+        String? paymentDateStr = prefs.getString('payment_date');
+        bool hasRecentPayment = false;
+        
+        if (paymentDateStr != null) {
+          try {
+            DateTime paymentDate = DateTime.parse(paymentDateStr);
+            DateTime now = DateTime.now();
+            hasRecentPayment = now.difference(paymentDate).inDays < 7;
+          } catch (e) {
+            print("Error parsing payment date during access check: $e");
+          }
+        }
+        
+        bool hasValidSubscription = (status != null && status['isActive'] == true) || hasRecentPayment;
+        
+        if (!hasValidSubscription) {
+          print("User does not have valid subscription - redirecting to subscription page");
+          // Show a message and redirect to subscription page
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Please subscribe to access the app content'),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 3),
+              ),
+            );
+            
+            // Redirect to subscription page after a short delay
+            Future.delayed(const Duration(seconds: 2), () {
+              if (mounted) {
+                Get.off(() => SubscriptionTiersScreen());
+              }
+            });
+          }
+        }
+      }
+    } catch (e) {
+      print("Error checking subscription access: $e");
+      // If there's an error, redirect to subscription page to be safe
+      if (mounted) {
+        Get.off(() => SubscriptionTiersScreen());
+      }
+    }
   }
 
   @override
