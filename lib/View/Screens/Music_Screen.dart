@@ -109,6 +109,8 @@ class MusicPage extends StatelessWidget {
                   }
                 },
               ),
+              // Add bottom padding to prevent content from being hidden behind audio player
+              const SizedBox(height: 120), // Space for audio player
             ],
           ),
         ),

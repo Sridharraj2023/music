@@ -92,6 +92,7 @@ class BinauralPage extends StatelessWidget {
                       mainAxisSpacing: 0,
                       crossAxisSpacing: 10,
                       childAspectRatio: 2.8,
+                      padding: const EdgeInsets.only(bottom: 120), // Space for audio player
                       children: types.map((type) {
                         return RoundedOptionButton(
                           label: type.name,
@@ -201,7 +202,7 @@ class BinauralSongsScreen extends StatelessWidget {
 
                   final songs = snapshot.data!;
                   return ListView.separated(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 136), // Extra bottom padding for audio player
                     itemCount: songs.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 16),
                     itemBuilder: (context, index) {

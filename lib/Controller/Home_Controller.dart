@@ -86,32 +86,46 @@ class HomeController {
 
   // Fetch all music only once
   Future<List<MusicItem>> _fetchAllMusic() async {
-    if (_cachedAllMusic != null) return _cachedAllMusic!;
+    if (_cachedAllMusic != null) {
+      print("HomeController: Returning cached music (${_cachedAllMusic!.length} items)");
+      return _cachedAllMusic!;
+    }
 
     try {
+      print("HomeController: Fetching music from API: $baseUrl");
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('auth_token');
 
-      if (token == null)
+      if (token == null) {
+        print("HomeController: No auth token found");
         throw Exception("User not authenticated. No token found.");
+      }
+
+      print("HomeController: Auth token found: ${token.substring(0, 20)}...");
 
       final headers = {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       };
 
+      print("HomeController: Making API request to: $baseUrl");
       final response = await http.get(Uri.parse(baseUrl), headers: headers);
+
+      print("HomeController: API response status: ${response.statusCode}");
+      print("HomeController: API response body: ${response.body.substring(0, 200)}...");
 
       if (response.statusCode == 200) {
         List<dynamic> jsonResponse = jsonDecode(response.body);
         _cachedAllMusic =
             jsonResponse.map((data) => MusicItem.fromJson(data)).toList();
+        print("HomeController: Successfully loaded ${_cachedAllMusic!.length} music items");
         return _cachedAllMusic!;
       } else {
+        print("HomeController: API error - Status: ${response.statusCode}, Body: ${response.body}");
         throw Exception("Failed to load music: ${response.statusCode}");
       }
     } catch (e) {
-      print("Error fetching music: $e");
+      print("HomeController: Error fetching music: $e");
       return [];
     }
   }

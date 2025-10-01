@@ -34,11 +34,13 @@ class AuthController {
     if (response.statusCode == 201) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Account created successfully! Please log in."),
+          content: Text("Account created successfully! Please subscribe to continue."),
           backgroundColor: Colors.green,
         ),
       );
       print(await response.stream.bytesToString());
+      
+      // Always redirect new users to subscription page - they need to pay first
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => SubscriptionTiersScreen()),
@@ -85,20 +87,17 @@ class AuthController {
         await prefs.setString('name', name);
         await prefs.setString('email', email);
         await prefs.setString('id', id);
+        
+        // Show login success message
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text("Login Successfully "),
+              content: Text("Login Successful"),
               backgroundColor: Colors.green),
         );
-        // // Navigate to next screen
-        // Navigator.pushReplacement(
-        //   context,
-        //   MaterialPageRoute(builder: (context) => SubscriptionTiersScreen()),
-        // );
-        final SubscriptionController _subscriptionController =
-            SubscriptionController();
-        final status =
-            await _subscriptionController.checkSubscriptionStatus(email);
+        
+        // Now check subscription status to determine where to redirect
+        final SubscriptionController _subscriptionController = SubscriptionController();
+        final status = await _subscriptionController.checkSubscriptionStatus(email);
         
         // Check if user has made a recent payment as a fallback
         String? paymentDateStr = prefs.getString('payment_date');
@@ -115,26 +114,43 @@ class AuthController {
           }
         }
         
-        // For new users, we need to be more strict about subscription access
-        bool shouldAllowAccess = false;
-        
-        if (status != null && status['isActive'] == true) {
-          // User has active subscription
-          shouldAllowAccess = true;
-          print("User has active subscription - allowing access");
-        } else if (hasRecentPayment) {
-          // User has made a recent payment (within 7 days)
-          shouldAllowAccess = true;
-          print("User has recent payment - allowing access");
-        } else {
-          // No active subscription and no recent payment
-          shouldAllowAccess = false;
-          print("No active subscription and no recent payment - redirecting to subscription page");
+        // Check subscription status from backend response first
+        bool backendSubscriptionActive = false;
+        if (responseData["subscription"] != null) {
+          var subscriptionData = responseData["subscription"];
+          backendSubscriptionActive = subscriptionData["isActive"] ?? false;
+          log("Backend login response - subscription active: $backendSubscriptionActive");
         }
         
+        // Determine if user should have access
+        bool shouldAllowAccess = false;
+        
+        if (backendSubscriptionActive || (status != null && status['isActive'] == true)) {
+          // User has active subscription from backend or frontend check
+          shouldAllowAccess = true;
+          print("Login: User has active subscription - allowing access to homepage");
+        } else if (hasRecentPayment) {
+          // User has made a recent payment (within 7 days) - temporary access
+          shouldAllowAccess = true;
+          print("Login: User has recent payment - allowing temporary access to homepage");
+        } else {
+          // No active subscription and no recent payment - MUST subscribe
+          shouldAllowAccess = false;
+          print("Login: No active subscription and no recent payment - redirecting to subscription page");
+        }
+        
+        // Redirect based on subscription status
         if (shouldAllowAccess) {
           Get.off(() => const HomePage());
         } else {
+          // User needs to subscribe - redirect to subscription tier screen
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Please subscribe to access the app"),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
+            ),
+          );
           Get.off(() => SubscriptionTiersScreen());
         }
       } else {

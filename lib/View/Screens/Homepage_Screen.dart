@@ -19,6 +19,7 @@ import 'package:elevate/View/Widgets/subscription_status.dart';
 import 'package:elevate/View/Screens/Subscription_Details_Screen.dart';
 import 'package:elevate/View/Screens/Notification_Preferences_Screen.dart';
 import 'package:elevate/View/Screens/Notification_History_Screen.dart';
+import 'package:elevate/utlis/api_test.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
@@ -65,14 +66,26 @@ class _HomePageState extends State<HomePage>
   }
 
   void fetchMusic() async {
-    // _musicItems = _homeController.fetchMusic();
-    _musicItems2 = await _homeController.fetchMusic();
+    print("Homepage: Starting to fetch music...");
+    try {
+      // _musicItems = _homeController.fetchMusic();
+      _musicItems2 = await _homeController.fetchMusic();
+      print("Homepage: Music fetched - ${_musicItems2?.length ?? 0} items");
 
-    // _binauralItems = _homeController.fetchBinauralMusic();
-    _binauralItems2 = await _homeController.fetchBinauralMusic();
-    setState(() {
-      isLoading = false;
-    });
+      // _binauralItems = _homeController.fetchBinauralMusic();
+      _binauralItems2 = await _homeController.fetchBinauralMusic();
+      print("Homepage: Binaural music fetched - ${_binauralItems2?.length ?? 0} items");
+      
+      setState(() {
+        isLoading = false;
+      });
+      print("Homepage: Music loading completed");
+    } catch (e) {
+      print("Homepage: Error fetching music: $e");
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   @override
@@ -114,31 +127,30 @@ class _HomePageState extends State<HomePage>
         bool hasValidSubscription = (status != null && status['isActive'] == true) || hasRecentPayment;
         
         if (!hasValidSubscription) {
-          print("User does not have valid subscription - redirecting to subscription page");
-          // Show a message and redirect to subscription page
+          print("Homepage: User does not have valid subscription - showing warning");
+          // Show warning but don't redirect immediately
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Please subscribe to access the app content'),
+                content: Text('Please subscribe to access premium features'),
                 backgroundColor: Colors.orange,
                 duration: Duration(seconds: 3),
               ),
             );
-            
-            // Redirect to subscription page after a short delay
-            Future.delayed(const Duration(seconds: 2), () {
-              if (mounted) {
-                Get.off(() => SubscriptionTiersScreen());
-              }
-            });
           }
         }
       }
     } catch (e) {
       print("Error checking subscription access: $e");
-      // If there's an error, redirect to subscription page to be safe
+      // Don't redirect on error - let the user access the app
       if (mounted) {
-        Get.off(() => SubscriptionTiersScreen());
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Unable to verify subscription status'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 2),
+          ),
+        );
       }
     }
   }
@@ -228,6 +240,21 @@ class _HomePageState extends State<HomePage>
               onTap: () {
                 Navigator.pop(context); // Close drawer
                 _showAboutDialog(context);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.bug_report, color: Colors.orange),
+              title: Text("Test Music API"),
+              onTap: () {
+                Navigator.pop(context); // Close drawer
+                ApiTest.testMusicApi();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('API test started - check console logs'),
+                    backgroundColor: Colors.blue,
+                    duration: Duration(seconds: 3),
+                  ),
+                );
               },
             ),
             ListTile(
@@ -336,9 +363,17 @@ class _HomePageState extends State<HomePage>
           ),
         ),
       ),
-      bottomNavigationBar: AudioPlayerWidget(
-        musicList: _musicItems2!,
-        binauralList: _binauralItems2!,
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.only(
+          bottom: 20.0, // Extra padding to avoid system navigation bar
+          left: 8.0,
+          right: 8.0,
+          top: 8.0,
+        ),
+        child: AudioPlayerWidget(
+          musicList: _musicItems2!,
+          binauralList: _binauralItems2!,
+        ),
       ),
       // bottomNavigationBar: FutureBuilder<List<MusicItem>>(
       //   future: _musicItems,

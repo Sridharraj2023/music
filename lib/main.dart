@@ -202,7 +202,7 @@ class _SplashScreenState extends State<SplashScreen> {
           }
         }
 
-        // For app startup, we need to be strict about subscription access
+        // STRICT SUBSCRIPTION CHECK: Only allow access if user has active subscription OR recent payment
         bool shouldAllowAccess = false;
         
         if (status != null && status['isActive'] == true) {
@@ -210,11 +210,11 @@ class _SplashScreenState extends State<SplashScreen> {
           shouldAllowAccess = true;
           print("Splash: User has active subscription - allowing access");
         } else if (hasRecentPayment) {
-          // User has made a recent payment (within 7 days)
+          // User has made a recent payment (within 7 days) - temporary access
           shouldAllowAccess = true;
-          print("Splash: Recent payment found - allowing access");
+          print("Splash: Recent payment found - allowing temporary access");
         } else {
-          // No active subscription and no recent payment
+          // No active subscription and no recent payment - MUST subscribe
           shouldAllowAccess = false;
           print("Splash: No active subscription and no recent payment - redirecting to subscription page");
         }
@@ -222,6 +222,7 @@ class _SplashScreenState extends State<SplashScreen> {
         if (shouldAllowAccess) {
           Get.off(() => const HomePage());
         } else {
+          // Redirect to subscription page - user needs to pay
           Get.off(() => SubscriptionTiersScreen());
         }
       } else {

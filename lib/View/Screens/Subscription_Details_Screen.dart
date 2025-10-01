@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'package:elevate/Controller/Subscription_Controller.dart';
+import 'package:elevate/utlis/clear_false_payment_data.dart';
+import 'package:elevate/utlis/subscription_flow_debug.dart';
 import 'Payment_Method_Setup_Screen.dart';
 
 class SubscriptionDetailsScreen extends StatefulWidget {
@@ -26,6 +28,14 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
   @override
   void initState() {
     super.initState();
+    _initializeData();
+  }
+  
+  Future<void> _initializeData() async {
+    // Clear any false payment data first
+    await ClearFalsePaymentData.clearFalsePaymentData();
+    
+    // Then load the actual data
     _loadPaymentDate();
     _startCountdown();
     _loadBillingStatus();
@@ -37,6 +47,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
     _timer?.cancel();
     super.dispose();
   }
+
 
   Future<void> _loadBillingStatus() async {
     try {
@@ -108,18 +119,20 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
         expiryDate = paymentDate!.add(const Duration(days: 30));
         _updateRemainingDays();
       } else {
-        // If no payment date found, set current date as payment date
-        paymentDate = DateTime.now();
-        expiryDate = paymentDate!.add(const Duration(days: 30));
-        await prefs.setString('payment_date', paymentDate!.toIso8601String());
-        _updateRemainingDays();
+        // If no payment date found, don't set any payment date
+        // This means user hasn't made a payment yet
+        paymentDate = null;
+        expiryDate = null;
+        remainingDays = 0;
+        setState(() {});
       }
     } catch (e) {
       print('Error loading payment date: $e');
-      // Fallback to current date
-      paymentDate = DateTime.now();
-      expiryDate = paymentDate!.add(const Duration(days: 30));
-      _updateRemainingDays();
+      // If error, don't set false payment date
+      paymentDate = null;
+      expiryDate = null;
+      remainingDays = 0;
+      setState(() {});
     }
   }
 
@@ -219,6 +232,70 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error fixing subscription status: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _clearFalsePaymentData() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      // Clear false payment data
+      await ClearFalsePaymentData.forceClearPaymentData();
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('False payment data cleared successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      
+      // Reload the payment date and subscription status
+      await _loadPaymentDate();
+      await _loadSubscriptionStatus();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error clearing false payment data: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _debugSubscriptionFlow() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      // Debug the subscription flow
+      await SubscriptionFlowDebug.debugSubscriptionStatus();
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Check console for subscription flow debug info'),
+          backgroundColor: Colors.blue,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error debugging subscription flow: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -408,7 +485,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                         'Payment Date',
                         paymentDate != null 
                             ? '${paymentDate!.day.toString().padLeft(2, '0')}/${paymentDate!.month.toString().padLeft(2, '0')}/${paymentDate!.year}'
-                            : 'Not available',
+                            : 'No payment made',
                         Icons.payment,
                       ),
                       
@@ -419,7 +496,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                         'Expiry Date',
                         expiryDate != null 
                             ? '${expiryDate!.day.toString().padLeft(2, '0')}/${expiryDate!.month.toString().padLeft(2, '0')}/${expiryDate!.year}'
-                            : 'Not available',
+                            : 'No subscription',
                         Icons.event,
                       ),
                       
@@ -612,6 +689,62 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                   ),
                   const SizedBox(height: 12),
                 ],
+                
+                // Clear False Payment Data Button (for debugging)
+                if (paymentDate != null && !_isSubscriptionActive) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: isLoading ? null : _clearFalsePaymentData,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: isLoading 
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Text('Clear False Payment Data'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                
+                // Debug Subscription Flow Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: isLoading ? null : _debugSubscriptionFlow,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: isLoading 
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Text('Debug Subscription Flow'),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 Row(
                   children: [
                     Expanded(
@@ -708,7 +841,12 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
       
       return 'Your subscription is active and working properly.';
     } else {
-      return 'Payment received. Finalizing activation...';
+      // Check if user has made a payment or not
+      if (paymentDate == null) {
+        return 'No payment made yet. Please subscribe to access the app.';
+      } else {
+        return 'Payment received. Finalizing activation...';
+      }
     }
   }
 
