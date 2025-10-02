@@ -363,13 +363,9 @@ class _HomePageState extends State<HomePage>
           ),
         ),
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.only(
-          bottom: 20.0, // Extra padding to avoid system navigation bar
-          left: 8.0,
-          right: 8.0,
-          top: 8.0,
-        ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        minimum: EdgeInsets.zero,
         child: AudioPlayerWidget(
           musicList: _musicItems2!,
           binauralList: _binauralItems2!,
