@@ -90,6 +90,7 @@
 import 'package:elevate/Model/music_item.dart';
 import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
+import 'Equalizer_Controller.dart';
 
 class BottomBarController extends GetxController {
   final AudioPlayer binauralPlayer =
@@ -377,5 +378,77 @@ class BottomBarController extends GetxController {
   void setAllBinaural(List<MusicItem> binaural) {
     binauralPlaylist.value = binaural.map((item) => item.fileUrl).toList();
     binauralPlaylists.value = binaural;
+  }
+
+  /// Apply equalizer settings to audio players
+  void applyEqualizerSettings() {
+    try {
+      // Get equalizer controller
+      final equalizerController = Get.find<EqualizerController>();
+      
+      if (!equalizerController.isEqualizerEnabled.value) {
+        // If equalizer is disabled, reset to flat
+        _resetAudioEffects();
+        return;
+      }
+
+      // Apply equalizer gains to audio players
+      // Note: just_audio doesn't have built-in equalizer support
+      // This is a placeholder for future implementation with audio processing libraries
+      final gains = equalizerController.equalizerGains.value;
+      
+      // For now, we'll simulate the effect by adjusting volume slightly
+      // In a real implementation, you would use audio processing libraries like:
+      // - flutter_audio_processing
+      // - audio_waveforms
+      // - or native audio processing
+      
+      print('Applying equalizer settings: ${equalizerController.currentPreset.value}');
+      print('Gains: $gains');
+      
+      // Placeholder: Apply a simple volume adjustment based on overall gain
+      final overallGain = gains.reduce((a, b) => a + b) / gains.length;
+      final volumeMultiplier = (overallGain + 12) / 24; // Normalize to 0-1
+      
+      if (isBinauralPlaying.value) {
+        binauralPlayer.setVolume(binauralVolume.value * volumeMultiplier);
+      }
+      if (isMusicPlaying.value) {
+        musicPlayer.setVolume(musicVolume.value * volumeMultiplier);
+      }
+      
+    } catch (e) {
+      print('Error applying equalizer settings: $e');
+    }
+  }
+
+  /// Reset audio effects to flat
+  void _resetAudioEffects() {
+    if (isBinauralPlaying.value) {
+      binauralPlayer.setVolume(binauralVolume.value);
+    }
+    if (isMusicPlaying.value) {
+      musicPlayer.setVolume(musicVolume.value);
+    }
+  }
+
+  /// Get current equalizer preset
+  String getCurrentEqualizerPreset() {
+    try {
+      final equalizerController = Get.find<EqualizerController>();
+      return equalizerController.currentPreset.value;
+    } catch (e) {
+      return 'Flat';
+    }
+  }
+
+  /// Check if equalizer is enabled
+  bool isEqualizerEnabled() {
+    try {
+      final equalizerController = Get.find<EqualizerController>();
+      return equalizerController.isEqualizerEnabled.value;
+    } catch (e) {
+      return false;
+    }
   }
 }
