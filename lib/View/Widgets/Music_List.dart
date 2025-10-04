@@ -30,21 +30,36 @@ class MusicList extends StatelessWidget {
                   children: [
                     GestureDetector(
                       onTap: () {
+                        print("🎵 Music item tapped: ${item.title}");
+                        print("🎵 File URL: ${item.fileUrl}");
+                        print("🎵 Is Binaural: $isBinaural");
+                        
                         if (isBinaural) {
                           // Play Binaural
+                          print("🎧 Setting binaural playing state");
                           bottomBarController.isBinauralPlaying.value = true;
                         } else {
                           // Play Music
-
+                          print("🎵 Setting music playing state");
                           bottomBarController.isMusicPlaying.value = true;
                         }
+                        
                         log(item.fileUrl);
+                        
                         if (isBinaural) {
-                          bottomBarController.playBinaural(
-                              item.fileUrl); // Ensure file exists!
+                          print("🎧 Calling playBinaural with: ${item.fileUrl}");
+                          // Test with a known working URL if the API URL fails
+                          final testUrl = item.fileUrl.isNotEmpty 
+                              ? item.fileUrl 
+                              : "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav";
+                          bottomBarController.playBinaural(testUrl);
                         } else {
-                          bottomBarController
-                              .playMusic(item.fileUrl); // Ensure file exists!
+                          print("🎵 Calling playMusic with: ${item.fileUrl}");
+                          // Test with a known working URL if the API URL fails
+                          final testUrl = item.fileUrl.isNotEmpty 
+                              ? item.fileUrl 
+                              : "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav";
+                          bottomBarController.playMusic(testUrl);
                         }
                         // if (isBinaural) {
                         //   bottomBarController.playBinaural(

@@ -90,6 +90,7 @@
 import 'package:elevate/Model/music_item.dart';
 import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:http/http.dart' as http;
 import 'Equalizer_Controller.dart';
 
 class BottomBarController extends GetxController {
@@ -176,42 +177,229 @@ class BottomBarController extends GetxController {
   /// Play binaural audio (From Assets)
   Future<void> playBinaural(String assetPath) async {
     try {
+      print("🎧 Attempting to play binaural: $assetPath");
+      
+      if (assetPath.isEmpty) {
+        print("❌ Error: Binaural URL is empty");
+        return;
+      }
+      
       binauralTrack.value = assetPath; // Set the binaural track path
-      // await binauralPlayer.setAsset(assetPath); // Load local MP3 file
-      await binauralPlayer.setUrl(assetPath); // Load local MP3 file
+      
+      // Convert local URLs to production URLs
+      final finalUrl = _convertToProductionUrl(assetPath);
+      
+      print("🎧 Setting URL for binaural player...");
+      await binauralPlayer.setUrl(finalUrl); // Load audio file from URL
 
+      print("🎧 Setting volume: ${binauralVolume.value}");
       binauralPlayer.setVolume(binauralVolume.value);
-      binauralPlayer.play();
+      
+      print("🎧 Starting playback...");
+      await binauralPlayer.play();
+      
       isBinauralPlaying.value = true;
       hasBinauralPlayed.value = true;
+      
+      print("✅ Binaural playback started successfully");
 
       // Update current index based on the track
       final index = binauralPlaylist.indexOf(assetPath);
       if (index != -1) {
         currentBinauralIndex.value = index;
+        print("🎧 Current binaural index: $index");
       }
+      
+      // Listen for player state changes with more detailed monitoring
+      binauralPlayer.playerStateStream.listen((state) {
+        print("🎧 Binaural player state: ${state.processingState}, playing: ${state.playing}");
+        
+        if (state.processingState == ProcessingState.ready && state.playing) {
+          print("🎧 ✅ Binaural is actually playing!");
+        } else if (state.processingState == ProcessingState.loading) {
+          print("🎧 🔄 Binaural is loading...");
+        } else if (state.processingState == ProcessingState.buffering) {
+          print("🎧 🔄 Binaural is buffering...");
+        } else if (state.processingState == ProcessingState.completed) {
+          print("🎧 ✅ Binaural playback completed");
+        } else if (state.processingState == ProcessingState.idle) {
+          print("🎧 ⏸️ Binaural player is idle");
+        }
+      });
+      
+      // Also listen for duration stream to confirm audio is loaded
+      binauralPlayer.durationStream.listen((duration) {
+        if (duration != null) {
+          print("🎧 Audio duration: ${duration.inSeconds} seconds");
+        }
+      });
+      
     } catch (e) {
-      print("Error playing binaural: $e");
+      print("❌ Error playing binaural: $e");
+      print("❌ Error type: ${e.runtimeType}");
+      
+      // More detailed error analysis
+      if (e is PlayerException) {
+        print("❌ PlayerException details:");
+        print("   - Code: ${e.code}");
+        print("   - Message: ${e.message}");
+        print("   - URL that failed: $assetPath");
+        
+        // Common PlayerException codes and their meanings
+        switch (e.code) {
+          case 0:
+            print("❌ Code 0: Source error - URL is invalid or unreachable");
+            print("   Possible causes:");
+            print("   - URL is malformed");
+            print("   - File doesn't exist at URL");
+            print("   - Server is down");
+            print("   - Network connectivity issues");
+            print("   - CORS issues");
+            
+            // Check if this is a production server 500 error
+            final finalUrl = _convertToProductionUrl(assetPath);
+            if (finalUrl.contains('elevate-backend-s28.onrender.com')) {
+              print("💡 SOLUTION: This file needs to be uploaded to production server");
+              print("   File: ${Uri.parse(finalUrl).pathSegments.last}");
+              print("   Upload this file from local server to production server");
+              print("   Local path: $assetPath");
+              print("   Production path: $finalUrl");
+            }
+            break;
+          case 1:
+            print("❌ Code 1: Format error - Audio format not supported");
+            break;
+          case 2:
+            print("❌ Code 2: Network error - Network connectivity issues");
+            break;
+          default:
+            print("❌ Unknown PlayerException code: ${e.code}");
+        }
+      }
+      
+      // Reset states on error
+      isBinauralPlaying.value = false;
+      binauralTrack.value = '';
     }
   }
 
   /// Play music audio (From Assets)
   Future<void> playMusic(String assetPath) async {
     try {
+      print("🎵 Attempting to play music: $assetPath");
+      
+      if (assetPath.isEmpty) {
+        print("❌ Error: Music URL is empty");
+        return;
+      }
+      
+      // Test URL accessibility
+      print("🎵 Testing URL accessibility...");
+      try {
+        final uri = Uri.parse(assetPath);
+        print("🎵 Parsed URI: $uri");
+        print("🎵 Scheme: ${uri.scheme}");
+        print("🎵 Host: ${uri.host}");
+        print("🎵 Path: ${uri.path}");
+      } catch (uriError) {
+        print("❌ Invalid URL format: $uriError");
+      }
+      
       musicTrack.value = assetPath; // Set the music track path
-      await musicPlayer.setUrl(assetPath); // Load local MP3 file
+      
+      // Convert local URLs to production URLs
+      final finalUrl = _convertToProductionUrl(assetPath);
+      
+      print("🎵 Setting URL for music player...");
+      await musicPlayer.setUrl(finalUrl); // Load audio file from URL
+      
+      print("🎵 Setting volume: ${musicVolume.value}");
       musicPlayer.setVolume(musicVolume.value);
-      musicPlayer.play();
+      
+      print("🎵 Starting playback...");
+      await musicPlayer.play();
+      
       isMusicPlaying.value = true;
       hasMusicPlayed.value = true;
+      
+      print("✅ Music playback started successfully");
 
       // Update current index based on the track
       final index = musicPlaylist.indexOf(assetPath);
       if (index != -1) {
         currentMusicIndex.value = index;
+        print("🎵 Current music index: $index");
       }
+      
+      // Listen for player state changes with more detailed monitoring
+      musicPlayer.playerStateStream.listen((state) {
+        print("🎵 Music player state: ${state.processingState}, playing: ${state.playing}");
+        if (state.processingState == ProcessingState.ready && state.playing) {
+          print("🎵 ✅ Music is actually playing!");
+        } else if (state.processingState == ProcessingState.loading) {
+          print("🎵 🔄 Music is loading...");
+        } else if (state.processingState == ProcessingState.buffering) {
+          print("🎵 🔄 Music is buffering...");
+        } else if (state.processingState == ProcessingState.completed) {
+          print("🎵 ✅ Music playback completed");
+        } else if (state.processingState == ProcessingState.idle) {
+          print("🎵 ⏸️ Music player is idle");
+        }
+      });
+      
+      // Also listen for duration stream to confirm audio is loaded
+      musicPlayer.durationStream.listen((duration) {
+        if (duration != null) {
+          print("🎵 Audio duration: ${duration.inSeconds} seconds");
+        }
+      });
+      
     } catch (e) {
-      print("Error playing music: $e");
+      print("❌ Error playing music: $e");
+      print("❌ Error type: ${e.runtimeType}");
+      
+      // More detailed error analysis
+      if (e is PlayerException) {
+        print("❌ PlayerException details:");
+        print("   - Code: ${e.code}");
+        print("   - Message: ${e.message}");
+        print("   - URL that failed: $assetPath");
+        
+        // Common PlayerException codes and their meanings
+        switch (e.code) {
+          case 0:
+            print("❌ Code 0: Source error - URL is invalid or unreachable");
+            print("   Possible causes:");
+            print("   - URL is malformed");
+            print("   - File doesn't exist at URL");
+            print("   - Server is down");
+            print("   - Network connectivity issues");
+            print("   - CORS issues");
+            
+            // Check if this is a production server 500 error
+            final finalUrl = _convertToProductionUrl(assetPath);
+            if (finalUrl.contains('elevate-backend-s28.onrender.com')) {
+              print("💡 SOLUTION: This file needs to be uploaded to production server");
+              print("   File: ${Uri.parse(finalUrl).pathSegments.last}");
+              print("   Upload this file from local server to production server");
+              print("   Local path: $assetPath");
+              print("   Production path: $finalUrl");
+            }
+            break;
+          case 1:
+            print("❌ Code 1: Format error - Audio format not supported");
+            break;
+          case 2:
+            print("❌ Code 2: Network error - Network connectivity issues");
+            break;
+          default:
+            print("❌ Unknown PlayerException code: ${e.code}");
+        }
+      }
+      
+      // Reset states on error
+      isMusicPlaying.value = false;
+      musicTrack.value = '';
     }
   }
 
@@ -371,13 +559,125 @@ class BottomBarController extends GetxController {
   }
 
   void setAllMusic(List<MusicItem> music) {
+    print("🎵 Setting music playlist with ${music.length} items");
     musicPlaylist.value = music.map((item) => item.fileUrl).toList();
     musicPlaylists.value = music;
+    
+    // Debug: Print first few music URLs and test them
+    for (int i = 0; i < music.length && i < 3; i++) {
+      print("🎵 Music $i: ${music[i].title} - ${music[i].fileUrl}");
+      _testAudioUrl(music[i].fileUrl, "Music ${music[i].title}");
+    }
+  }
+
+  /// Convert local URLs to production URLs with fallback
+  String _convertToProductionUrl(String url) {
+    if (url.isEmpty) return url;
+    
+    try {
+      // Handle relative URLs (starting with /uploads/)
+      if (url.startsWith('/uploads/')) {
+        final productionUrl = 'https://elevate-backend-s28.onrender.com$url';
+        print("🔄 Converting relative URL to production URL");
+        print("   Original: $url");
+        print("   Production: $productionUrl");
+        return productionUrl;
+      }
+      
+      final uri = Uri.parse(url);
+      
+      // Check if it's a local IP address
+      if (uri.host.startsWith('192.168.') || uri.host.startsWith('10.') || uri.host == 'localhost' || uri.host == '127.0.0.1') {
+        print("🔄 Converting local URL to production URL");
+        print("   Original: $url");
+        
+        // Replace local server with production server and remove port
+        final productionUrl = url.replaceAll(uri.host, 'elevate-backend-s28.onrender.com');
+        // Remove port number for production server
+        final noPortUrl = productionUrl.replaceAll(':5000', '');
+        // If it's HTTP, convert to HTTPS for production
+        final finalUrl = noPortUrl.replaceAll('http://', 'https://');
+        
+        print("   Production: $finalUrl");
+        return finalUrl;
+      }
+      
+      // If it's already a production URL, return as is
+      if (url.contains('elevate-backend-s28.onrender.com')) {
+        print("✅ Already using production URL: $url");
+        return url;
+      }
+      
+    } catch (e) {
+      print("❌ Error converting URL: $e");
+    }
+    
+    return url;
+  }
+
+  /// Test if an audio URL is accessible
+  Future<void> _testAudioUrl(String url, String name) async {
+    if (url.isEmpty) {
+      print("❌ $name: URL is empty");
+      return;
+    }
+    
+    try {
+      final uri = Uri.parse(url);
+      print("🔍 Testing $name URL: $url");
+      print("   - Scheme: ${uri.scheme}");
+      print("   - Host: ${uri.host}");
+      print("   - Path: ${uri.path}");
+      
+      // Check if it's a local IP address
+      if (uri.host.startsWith('192.168.') || uri.host.startsWith('10.') || uri.host == 'localhost' || uri.host == '127.0.0.1') {
+        print("⚠️  WARNING: $name is using a local IP address (${uri.host})");
+        print("   This may not be accessible from your device/emulator");
+        print("   Solutions:");
+        print("   1. Use the same network as the server");
+        print("   2. Use ngrok or similar tunneling service");
+        print("   3. Deploy server to a public URL");
+        print("   4. Use production API URL instead");
+      }
+      
+      // Test with a simple HTTP HEAD request to check if URL is accessible
+      final response = await http.head(Uri.parse(url)).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          print("⏰ $name: Request timed out after 10 seconds");
+          throw Exception('Request timeout');
+        },
+      );
+      print("   - HTTP Status: ${response.statusCode}");
+      
+      if (response.statusCode == 200) {
+        print("✅ $name: URL is accessible");
+      } else {
+        print("❌ $name: URL returned status ${response.statusCode}");
+      }
+    } catch (e) {
+      print("❌ $name: URL test failed - $e");
+      
+      // Provide specific solutions based on error type
+      if (e.toString().contains('timeout') || e.toString().contains('Connection refused')) {
+        print("💡 Solution: Server is not reachable. Try:");
+        print("   1. Check if server is running on ${Uri.parse(url).host}:${Uri.parse(url).port}");
+        print("   2. Use production API URL instead of local server");
+        print("   3. Use ngrok: ngrok http 5000");
+      }
+    }
   }
 
   void setAllBinaural(List<MusicItem> binaural) {
+    print("🎧 Setting binaural playlist with ${binaural.length} items");
     binauralPlaylist.value = binaural.map((item) => item.fileUrl).toList();
     binauralPlaylists.value = binaural;
+    
+    // Debug: Print first few binaural URLs and test them
+    for (int i = 0; i < binaural.length && i < 3; i++) {
+      print("🎧 Binaural $i: ${binaural[i].title} - ${binaural[i].fileUrl}");
+      _testAudioUrl(binaural[i].fileUrl, "Binaural ${binaural[i].title}");
+    }
   }
 
   /// Apply equalizer settings to audio players
@@ -452,3 +752,4 @@ class BottomBarController extends GetxController {
     }
   }
 }
+
