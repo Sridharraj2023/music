@@ -126,8 +126,12 @@ void main() async {
   print("Resolved API URL: ${ApiConstants.apiUrl}");
   print("Resolved Stripe Publishable Key: ${ApiConstants.publishKey}");
   
+  // Force use production Render server for music and images
+  ApiConstants.useProductionServer();
+  print("✅ Using production Render server: ${ApiConstants.resolvedApiUrl}");
+  
   // Use API URL from ApiConstants (reads from .env or uses default)
-  print("Resolved API URL: ${ApiConstants.resolvedApiUrl}");
+  print("Final resolved API URL: ${ApiConstants.resolvedApiUrl}");
 
   // Inject GetX controller
   Get.put(BottomBarController());

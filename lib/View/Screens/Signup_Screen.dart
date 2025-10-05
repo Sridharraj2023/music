@@ -184,6 +184,7 @@ import '../Widgets/Custom_TextField.dart';
 import '../widgets/gradient_container.dart';
 import 'Login_Screen.dart';
 import 'SubscriptionTier_Screen.dart';
+import 'Legal_Pdf_View.dart';
 
 class SignupScreen extends StatefulWidget {
   @override
@@ -198,6 +199,8 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _confirmPasswordController =
       TextEditingController();
   bool _isLoading = false; // To show a loading indicator
+  bool _acceptedTerms = false;
+  bool _acceptedDisclaimer = false;
 
   void _signUp(BuildContext context) async {
     final username = _usernameController.text.trim();
@@ -326,7 +329,85 @@ class _SignupScreenState extends State<SignupScreen> {
                         hintText: "Confirm Password",
                         obscureText: true,
                         controller: _confirmPasswordController),
-                    SizedBox(height: screenHeight * 0.02),
+                    SizedBox(height: 12),
+                    // Terms & Disclaimer checkboxes (moved below Confirm Password)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        CheckboxListTile(
+                          value: _acceptedTerms,
+                          onChanged: (v) => setState(() => _acceptedTerms = v ?? false),
+                          controlAffinity: ListTileControlAffinity.leading,
+                          dense: true,
+                          visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
+                          activeColor: Colors.white,
+                          checkColor: Colors.black,
+                          title: Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              const Text('I agree to the ', style: TextStyle(color: Colors.white)),
+                              GestureDetector(
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const LegalPdfView(title: 'Terms & Conditions', assetPath: 'assets/legal/terms.pdf'),
+                                  ),
+                                ),
+                                child: const Text('Terms & Conditions', style: TextStyle(color: Colors.white, decoration: TextDecoration.underline)),
+                              ),
+                            ],
+                          ),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        CheckboxListTile(
+                          value: _acceptedDisclaimer,
+                          onChanged: (v) => setState(() => _acceptedDisclaimer = v ?? false),
+                          controlAffinity: ListTileControlAffinity.leading,
+                          dense: true,
+                          visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
+                          activeColor: Colors.white,
+                          checkColor: Colors.black,
+                          title: Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              const Text('I have read the ', style: TextStyle(color: Colors.white)),
+                              GestureDetector(
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const LegalPdfView(title: 'Disclaimer', assetPath: 'assets/legal/disclaimer.pdf'),
+                                  ),
+                                ),
+                                child: const Text('Disclaimer', style: TextStyle(color: Colors.white, decoration: TextDecoration.underline)),
+                              ),
+                            ],
+                          ),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    // Signup button
+                    SizedBox(height: 8),
+                    _isLoading
+                        ? CircularProgressIndicator(color: Colors.white)
+                        : ElevatedButton(
+                            onPressed: (_acceptedTerms && _acceptedDisclaimer) ? () => _signUp(context) : null,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.black,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30)),
+                              padding: EdgeInsets.symmetric(
+                                  vertical: screenHeight * 0.02),
+                              minimumSize: Size(screenWidth * 0.8, 50),
+                            ),
+                            child: Text("Signup",
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: screenWidth * 0.05,
+                                    fontWeight: FontWeight.bold)),
+                          ),
+                    SizedBox(height: 12),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -347,26 +428,6 @@ class _SignupScreenState extends State<SignupScreen> {
                         ),
                       ],
                     ),
-                    SizedBox(height: screenHeight * 0.02),
-                    _isLoading
-                        ? CircularProgressIndicator(color: Colors.white)
-                        : ElevatedButton(
-                            onPressed: () => _signUp(context),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.black,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(30)),
-                              padding: EdgeInsets.symmetric(
-                                  vertical: screenHeight * 0.02),
-                              minimumSize: Size(screenWidth * 0.8, 50),
-                            ),
-                            child: Text("Signup",
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: screenWidth * 0.05,
-                                    fontWeight: FontWeight.bold)),
-                          ),
-                    SizedBox(height: screenHeight * 0.02),
                   ],
                 ),
               ),

@@ -88,6 +88,7 @@
 // ////////////////// Above Currect and fix Code ///////////////////////////////////////
 
 import 'package:elevate/Model/music_item.dart';
+import 'package:elevate/utlis/api_constants.dart';
 import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:http/http.dart' as http;
@@ -577,7 +578,7 @@ class BottomBarController extends GetxController {
     try {
       // Handle relative URLs (starting with /uploads/)
       if (url.startsWith('/uploads/')) {
-        final productionUrl = 'https://elevate-backend-s28.onrender.com$url';
+        final productionUrl = '${ApiConstants.resolvedApiUrl.replaceAll('/api', '')}$url';
         print("🔄 Converting relative URL to production URL");
         print("   Original: $url");
         print("   Production: $productionUrl");
@@ -586,15 +587,20 @@ class BottomBarController extends GetxController {
       
       final uri = Uri.parse(url);
       
-      // Check if it's a local IP address
-      if (uri.host.startsWith('192.168.') || uri.host.startsWith('10.') || uri.host == 'localhost' || uri.host == '127.0.0.1') {
+      // Check if it's a local IP address or localhost
+      if (uri.host.startsWith('192.168.') || uri.host.startsWith('10.') || 
+          uri.host == 'localhost' || uri.host == '127.0.0.1' || 
+          uri.host.contains('local')) {
         print("🔄 Converting local URL to production URL");
         print("   Original: $url");
         
-        // Replace local server with production server and remove port
-        final productionUrl = url.replaceAll(uri.host, 'elevate-backend-s28.onrender.com');
+        // Get production base URL from API constants
+        final productionBaseUrl = ApiConstants.resolvedApiUrl.replaceAll('/api', '');
+        
+        // Replace local server with production server
+        final productionUrl = url.replaceAll(uri.host, Uri.parse(productionBaseUrl).host);
         // Remove port number for production server
-        final noPortUrl = productionUrl.replaceAll(':5000', '');
+        final noPortUrl = productionUrl.replaceAll(':${uri.port}', '');
         // If it's HTTP, convert to HTTPS for production
         final finalUrl = noPortUrl.replaceAll('http://', 'https://');
         
@@ -603,7 +609,7 @@ class BottomBarController extends GetxController {
       }
       
       // If it's already a production URL, return as is
-      if (url.contains('elevate-backend-s28.onrender.com')) {
+      if (url.contains('elevate-backend-s28.onrender.com') || url.contains('onrender.com')) {
         print("✅ Already using production URL: $url");
         return url;
       }
@@ -613,6 +619,11 @@ class BottomBarController extends GetxController {
     }
     
     return url;
+  }
+
+  /// Convert image URLs to production URLs (same logic as music URLs)
+  String _convertImageUrlToProduction(String url) {
+    return _convertToProductionUrl(url);
   }
 
   /// Test if an audio URL is accessible

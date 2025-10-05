@@ -159,6 +159,7 @@ class _HomePageState extends State<HomePage>
   Widget build(BuildContext context) {
     if (isLoading) {
       return Scaffold(
+        backgroundColor: Colors.transparent,
         body: GradientContainer(
           child: Center(
             child: CircularProgressIndicator(
@@ -169,6 +170,7 @@ class _HomePageState extends State<HomePage>
       );
     }
     return Scaffold(
+      backgroundColor: Colors.transparent,
       key: _drawerKey,
       drawer: Drawer(
         child: ListView(

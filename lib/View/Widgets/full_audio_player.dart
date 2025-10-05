@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
 import '../../Controller/BottomBar_Controller.dart';
+import 'package:elevate/utlis/api_constants.dart';
 import '../widgets/gradient_container.dart';
 import '../Screens/Standalone_Equalizer_Screen.dart';
 
@@ -22,11 +23,27 @@ class FullAudioPlayerScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    String _resolveImageUrl(String url) {
+      if (url.isEmpty) return url;
+      try {
+        // Relative uploads path → prefix with production base
+        if (url.startsWith('/uploads/')) {
+          return ApiConstants.resolvedApiUrl.replaceAll('/api', '') + url;
+        }
+        // Local hosts → swap to production and https
+        final uri = Uri.parse(url);
+        if (uri.host.startsWith('192.168.') || uri.host == 'localhost' || uri.host == '127.0.0.1' || uri.host.contains('local')) {
+          final prod = ApiConstants.resolvedApiUrl.replaceAll('/api', '');
+          final replaced = url.replaceAll(uri.host, Uri.parse(prod).host).replaceAll('http://', 'https://');
+          return replaced.replaceAll(':${uri.port}', '');
+        }
+      } catch (_) {}
+      return url;
+    }
     final AudioPlayer player =
         isBinaural ? controller.binauralPlayer : controller.musicPlayer;
     
-    // Set the asset when the screen is built
-    player.setAsset(track);
+    // Do not (re)load media here; controller manages the current source
 
     // MediaQuery for screen dimensions
     double screenWidth = MediaQuery.of(context).size.width;
@@ -168,7 +185,7 @@ class FullAudioPlayerScreen extends StatelessWidget {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(30),
                             child: Image.network(
-                              currentTrack.imageUrl,
+                              _resolveImageUrl(currentTrack.imageUrl),
                               fit: BoxFit.cover,
                               loadingBuilder: (context, child, loadingProgress) {
                                 if (loadingProgress == null) return child;
@@ -398,7 +415,13 @@ class FullAudioPlayerScreen extends StatelessWidget {
                               ),
                               _buildControlButton(
                                 icon: Icons.replay,
-                                onPressed: () => player.seek(Duration.zero),
+                                onPressed: () async {
+                                  await player.seek(Duration.zero);
+                                  // If not currently playing, start playback after refresh
+                                  if (!(isBinaural ? controller.isBinauralPlaying.value : controller.isMusicPlaying.value)) {
+                                    await player.play();
+                                  }
+                                },
                                 size: 24,
                               ),
                               _buildMainPlayButton(

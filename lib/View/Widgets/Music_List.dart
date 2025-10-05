@@ -7,6 +7,7 @@ import 'package:get/get_core/src/get_main.dart';
 
 import '../../Controller/BottomBar_Controller.dart';
 import '../../Model/music_item.dart';
+import 'package:elevate/utlis/api_constants.dart';
 
 class MusicList extends StatelessWidget {
   final List<MusicItem> items;
@@ -17,6 +18,21 @@ class MusicList extends StatelessWidget {
       Get.find<BottomBarController>();
   @override
   Widget build(BuildContext context) {
+    String _resolveImageUrl(String url) {
+      if (url.isEmpty) return url;
+      try {
+        if (url.startsWith('/uploads/')) {
+          return ApiConstants.resolvedApiUrl.replaceAll('/api', '') + url;
+        }
+        final uri = Uri.parse(url);
+        if (uri.host.startsWith('192.168.') || uri.host == 'localhost' || uri.host == '127.0.0.1' || uri.host.contains('local')) {
+          final prod = ApiConstants.resolvedApiUrl.replaceAll('/api', '');
+          final replaced = url.replaceAll(uri.host, Uri.parse(prod).host).replaceAll('http://', 'https://');
+          return replaced.replaceAll(':${uri.port}', '');
+        }
+      } catch (_) {}
+      return url;
+    }
     return SizedBox(
       height: 160,
       child: ListView(
@@ -83,7 +99,7 @@ class MusicList extends StatelessWidget {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: Image.network(
-                          item.imageUrl,
+                          _resolveImageUrl(item.imageUrl),
                           width: 100,
                           height: 100,
                           fit: BoxFit.cover,
@@ -103,7 +119,7 @@ class MusicList extends StatelessWidget {
                           },
                           errorBuilder: (context, error, stackTrace) {
                             print('Image load error for ${item.title}: $error');
-                            print('Image URL: ${item.imageUrl}');
+                            print('Image URL: ${_resolveImageUrl(item.imageUrl)}');
                             return Container(
                               width: 100,
                               height: 100,
