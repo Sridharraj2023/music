@@ -24,6 +24,42 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
   bool _hasDefaultPaymentMethod = false;
   Map<String, dynamic>? _subscriptionStatus;
   bool _isSubscriptionActive = false;
+  
+  DateTime? _coerceToDateTime(dynamic value) {
+    try {
+      if (value == null) return null;
+      if (value is DateTime) return value;
+      if (value is int) {
+        // Heuristic: seconds vs milliseconds
+        if (value > 100000000000) {
+          // Likely milliseconds
+          return DateTime.fromMillisecondsSinceEpoch(value);
+        }
+        // Likely seconds
+        return DateTime.fromMillisecondsSinceEpoch(value * 1000);
+      }
+      if (value is double) {
+        final intVal = value.toInt();
+        if (intVal > 100000000000) {
+          return DateTime.fromMillisecondsSinceEpoch(intVal);
+        }
+        return DateTime.fromMillisecondsSinceEpoch(intVal * 1000);
+      }
+      if (value is String) {
+        // Try integer seconds/milliseconds first
+        final parsedInt = int.tryParse(value);
+        if (parsedInt != null) {
+          if (parsedInt > 100000000000) {
+            return DateTime.fromMillisecondsSinceEpoch(parsedInt);
+          }
+          return DateTime.fromMillisecondsSinceEpoch(parsedInt * 1000);
+        }
+        // Fallback ISO 8601
+        return DateTime.parse(value);
+      }
+    } catch (_) {}
+    return null;
+  }
 
   @override
   void initState() {
@@ -88,6 +124,13 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
               setState(() {
                 _subscriptionStatus = {'isActive': isActive};
                 _isSubscriptionActive = isActive;
+                // Prefer backend expiry if available (supports epoch seconds/ms or ISO)
+                final backendEnd = subscription['currentPeriodEnd'];
+                final parsed = _coerceToDateTime(backendEnd);
+                if (parsed != null) {
+                  expiryDate = parsed;
+                  _updateRemainingDays();
+                }
               });
               return;
             }
@@ -99,7 +142,48 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
         setState(() {
           _subscriptionStatus = status;
           _isSubscriptionActive = status?['isActive'] ?? false;
+          // Prefer controller/response expiry date if provided (handle multiple formats)
+          if (status != null && status['expiryDate'] != null) {
+            final parsed = _coerceToDateTime(status['expiryDate']);
+            if (parsed != null) {
+              expiryDate = parsed;
+              _updateRemainingDays();
+            }
+          }
         });
+
+        // If active but expiry not provided, fetch full status once to obtain currentPeriodEnd
+        if ((_isSubscriptionActive) && (expiryDate == null)) {
+          try {
+            final fullStatus = await _subscriptionController.getSubscriptionStatus();
+            if (fullStatus['subscription'] != null) {
+              final subscription = fullStatus['subscription'];
+              final backendEnd = subscription['currentPeriodEnd'] ??
+                  subscription['current_period_end'] ??
+                  subscription['current_period_end_ms'] ??
+                  subscription['currentPeriodEndMs'] ??
+                  fullStatus['currentPeriodEnd'] ??
+                  fullStatus['current_period_end'];
+              final parsed = _coerceToDateTime(backendEnd);
+              if (parsed != null) {
+                setState(() {
+                  expiryDate = parsed;
+                });
+                _updateRemainingDays();
+              } else {
+                // As a last resort: if active and no expiry provided, assume 30 days from now
+                final fallbackExpiry = DateTime.now().add(const Duration(days: 30));
+                setState(() {
+                  expiryDate = fallbackExpiry;
+                });
+                print('No backend expiry found; using fallback expiry: $fallbackExpiry');
+                _updateRemainingDays();
+              }
+            }
+          } catch (e) {
+            // ignore silently; UI will continue without expiry
+          }
+        }
         
         print('Final subscription status: $_subscriptionStatus');
         print('Final isActive: $_isSubscriptionActive');
@@ -111,27 +195,60 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
 
   Future<void> _loadPaymentDate() async {
     try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? paymentDateString = prefs.getString('payment_date');
-      
-      if (paymentDateString != null) {
-        paymentDate = DateTime.parse(paymentDateString);
-        expiryDate = paymentDate!.add(const Duration(days: 30));
-        _updateRemainingDays();
-      } else {
-        // If no payment date found, don't set any payment date
-        // This means user hasn't made a payment yet
-        paymentDate = null;
-        expiryDate = null;
-        remainingDays = 0;
-        setState(() {});
+      // Source payment date dynamically from backend full status
+      final fullStatus = await _subscriptionController.getSubscriptionStatus();
+      try {
+        // Lightweight introspection to help diagnose backend shape
+        final subscriptionMap = fullStatus['subscription'];
+        print('Backend status keys: top-level=${fullStatus.keys.toList()}');
+        if (subscriptionMap is Map<String, dynamic>) {
+          print('Backend subscription keys: ${subscriptionMap.keys.toList()}');
+        }
+      } catch (_) {}
+      if (fullStatus['subscription'] != null) {
+        final subscription = fullStatus['subscription'];
+        final backendPayment = subscription['currentPeriodStart'] ??
+            subscription['current_period_start'] ??
+            subscription['lastPaymentAt'] ??
+            subscription['last_payment_at'] ??
+            subscription['billingCycleAnchor'] ??
+            subscription['billing_cycle_anchor'] ??
+            subscription['created'] ??
+            fullStatus['lastPaymentAt'] ??
+            fullStatus['last_payment_at'];
+
+        final parsedPayment = _coerceToDateTime(backendPayment);
+        if (parsedPayment != null) {
+          paymentDate = parsedPayment;
+          print('Payment date from backend: $paymentDate');
+          // Do not compute expiry from payment here; expiry should come from backend separately
+          setState(() {});
+          return;
+        }
       }
-    } catch (e) {
-      print('Error loading payment date: $e');
-      // If error, don't set false payment date
+
+      // If backend has no payment timestamp, try local cached value as a last resort for display
+      print('No backend payment date found');
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final cached = prefs.getString('payment_date');
+        if (cached != null) {
+          final parsed = DateTime.tryParse(cached);
+          if (parsed != null) {
+            paymentDate = parsed;
+            print('Using cached local payment_date for display: $paymentDate');
+            setState(() {});
+            return;
+          }
+        }
+      } catch (_) {}
+
+      // Nothing available
       paymentDate = null;
-      expiryDate = null;
-      remainingDays = 0;
+      setState(() {});
+    } catch (e) {
+      print('Error loading payment date from backend: $e');
+      paymentDate = null;
       setState(() {});
     }
   }
@@ -140,11 +257,11 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
     if (expiryDate != null) {
       final now = DateTime.now();
       final difference = expiryDate!.difference(now);
-      remainingDays = difference.inDays;
-      
-      if (remainingDays < 0) {
-        remainingDays = 0;
-      }
+      final totalSeconds = difference.inSeconds;
+      // Ceil to avoid off-by-one when hours remain in the last day
+      remainingDays = (totalSeconds / 86400).ceil();
+      if (remainingDays < 0) remainingDays = 0;
+      print('Remaining days recalculated: $remainingDays (expiry: $expiryDate, now: $now)');
       
       setState(() {});
     }
@@ -480,20 +597,20 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                       
                       const SizedBox(height: 20),
                       
-                      // Payment Date
+                      // Billing Date
                       _buildInfoRow(
-                        'Payment Date',
+                        'Billing Date',
                         paymentDate != null 
                             ? '${paymentDate!.day.toString().padLeft(2, '0')}/${paymentDate!.month.toString().padLeft(2, '0')}/${paymentDate!.year}'
-                            : 'No payment made',
+                            : (_isSubscriptionActive ? 'Awaiting billing info' : 'No payment made'),
                         Icons.payment,
                       ),
                       
                       const SizedBox(height: 12),
                       
-                      // Expiry Date
+                      // Next Renewal
                       _buildInfoRow(
-                        'Expiry Date',
+                        'Next Renewal',
                         expiryDate != null 
                             ? '${expiryDate!.day.toString().padLeft(2, '0')}/${expiryDate!.month.toString().padLeft(2, '0')}/${expiryDate!.year}'
                             : 'No subscription',
