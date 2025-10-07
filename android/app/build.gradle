@@ -24,6 +24,7 @@ android {
 
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_17
+        freeCompilerArgs += ["-Xsuppress-warning=UNCHECKED_CAST"]
     }
 
     defaultConfig {

@@ -347,12 +347,21 @@ class _SignupScreenState extends State<SignupScreen> {
                             children: [
                               const Text('I agree to the ', style: TextStyle(color: Colors.white)),
                               GestureDetector(
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const LegalPdfView(title: 'Terms & Conditions', assetPath: 'assets/legal/terms.pdf'),
-                                  ),
-                                ),
+                                onTap: () async {
+                                  final result = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const LegalPdfView(
+                                        title: 'Terms & Conditions',
+                                        assetPath: 'assets/legal/terms.pdf',
+                                      ),
+                                    ),
+                                  );
+                                  // If user clicked "I Agree", automatically check the checkbox
+                                  if (result == true) {
+                                    setState(() => _acceptedTerms = true);
+                                  }
+                                },
                                 child: const Text('Terms & Conditions', style: TextStyle(color: Colors.white, decoration: TextDecoration.underline)),
                               ),
                             ],
@@ -372,12 +381,21 @@ class _SignupScreenState extends State<SignupScreen> {
                             children: [
                               const Text('I have read the ', style: TextStyle(color: Colors.white)),
                               GestureDetector(
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const LegalPdfView(title: 'Disclaimer', assetPath: 'assets/legal/disclaimer.pdf'),
-                                  ),
-                                ),
+                                onTap: () async {
+                                  final result = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const LegalPdfView(
+                                        title: 'Disclaimer',
+                                        assetPath: 'assets/legal/disclaimer.pdf',
+                                      ),
+                                    ),
+                                  );
+                                  // If user clicked "I Agree", automatically check the checkbox
+                                  if (result == true) {
+                                    setState(() => _acceptedDisclaimer = true);
+                                  }
+                                },
                                 child: const Text('Disclaimer', style: TextStyle(color: Colors.white, decoration: TextDecoration.underline)),
                               ),
                             ],
