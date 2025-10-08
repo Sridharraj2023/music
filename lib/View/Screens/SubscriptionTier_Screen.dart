@@ -1,6 +1,7 @@
 // views/screens/subscription_tiers_screen.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../Controller/Subscription_Controller.dart';
 import '../../Model/Subscription_Tiers.dart';
 import '../widgets/gradient_container.dart';
@@ -21,6 +22,7 @@ class _SubscriptionTiersScreenState extends State<SubscriptionTiersScreen> {
   List<SubscriptionTier> tiers = [];
   bool isLoading = true;
   String? errorMessage;
+  String selectedBillingPeriod = 'monthly'; // 'monthly' or 'yearly'
 
   @override
   void initState() {
@@ -133,11 +135,9 @@ class _SubscriptionTiersScreenState extends State<SubscriptionTiersScreen> {
           ),
         ),
         child: SingleChildScrollView(
-          child: Container(
-            height: MediaQuery.of(context).size.height,
-            child: Padding(
-              padding: const EdgeInsets.all(10.0),
-              child: Column(
+          child: Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: Column(
                 children: [
                   const SizedBox(height: 20),
                   Column(
@@ -175,6 +175,163 @@ class _SubscriptionTiersScreenState extends State<SubscriptionTiersScreen> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 20),
+                  // Billing Period Selection
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 20),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Select Billing Period',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    selectedBillingPeriod = 'monthly';
+                                  });
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: selectedBillingPeriod == 'monthly'
+                                        ? Colors.white
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Radio<String>(
+                                        value: 'monthly',
+                                        groupValue: selectedBillingPeriod,
+                                        onChanged: (value) {
+                                          setState(() {
+                                            selectedBillingPeriod = value!;
+                                          });
+                                        },
+                                        activeColor: selectedBillingPeriod == 'monthly'
+                                            ? const Color(0xFF6F41F3)
+                                            : Colors.white,
+                                        fillColor: MaterialStateProperty.resolveWith(
+                                          (states) => selectedBillingPeriod == 'monthly'
+                                              ? const Color(0xFF6F41F3)
+                                              : Colors.white,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Monthly',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: selectedBillingPeriod == 'monthly'
+                                              ? const Color(0xFF6F41F3)
+                                              : Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    selectedBillingPeriod = 'yearly';
+                                  });
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: selectedBillingPeriod == 'yearly'
+                                        ? Colors.white
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Radio<String>(
+                                        value: 'yearly',
+                                        groupValue: selectedBillingPeriod,
+                                        onChanged: (value) {
+                                          setState(() {
+                                            selectedBillingPeriod = value!;
+                                          });
+                                        },
+                                        activeColor: selectedBillingPeriod == 'yearly'
+                                            ? const Color(0xFF6F41F3)
+                                            : Colors.white,
+                                        fillColor: MaterialStateProperty.resolveWith(
+                                          (states) => selectedBillingPeriod == 'yearly'
+                                              ? const Color(0xFF6F41F3)
+                                              : Colors.white,
+                                        ),
+                                      ),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Yearly',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: selectedBillingPeriod == 'yearly'
+                                                  ? const Color(0xFF6F41F3)
+                                                  : Colors.white,
+                                            ),
+                                          ),
+                                          Text(
+                                            'Save 20%',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                              color: selectedBillingPeriod == 'yearly'
+                                                  ? const Color(0xFF6F41F3)
+                                                  : Colors.white70,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
                   ..._buildTierRows(tiers, context),
                   const SizedBox(height: 20),
                   // Payment Button
@@ -186,7 +343,18 @@ class _SubscriptionTiersScreenState extends State<SubscriptionTiersScreen> {
                       onPressed: () async {
                         if (tiers.isNotEmpty) {
                           try {
-                            await _subscriptionController.createSubscription(context, tiers[0].priceId);
+                            // Use the correct price ID based on selected billing period
+                            String priceId = selectedBillingPeriod == 'yearly'
+                                ? tiers[0].yearlyPriceId
+                                : tiers[0].monthlyPriceId;
+                            
+                            // Debug logging
+                            print("Selected billing period: $selectedBillingPeriod");
+                            print("Monthly Price ID: ${tiers[0].monthlyPriceId}");
+                            print("Yearly Price ID: ${tiers[0].yearlyPriceId}");
+                            print("Using Price ID: $priceId");
+                            
+                            await _subscriptionController.createSubscription(context, priceId);
                           } catch (e) {
                             print("Subscribe Now error: $e");
                             if (e.toString().contains('Session expired')) {
@@ -219,7 +387,7 @@ class _SubscriptionTiersScreenState extends State<SubscriptionTiersScreen> {
                       ),
                     ),
                   ),
-                  const Spacer(),
+                  const SizedBox(height: 40),
                   const Center(
                     child: Text(
                       '@ Elevate Audioworks LLC',
@@ -229,9 +397,8 @@ class _SubscriptionTiersScreenState extends State<SubscriptionTiersScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 60), // Increased padding to clear bottom navigation
+                  const SizedBox(height: 80), // Increased padding to clear bottom navigation
                 ],
-              ),
             ),
           ),
         ),
@@ -253,6 +420,7 @@ class _SubscriptionTiersScreenState extends State<SubscriptionTiersScreen> {
               },
               child: SubscriptionTierCard(
                 tier: tiers[i],
+                selectedBillingPeriod: selectedBillingPeriod,
               ),
             )),
             if (i + 1 < tiers.length) const SizedBox(width: 16),
@@ -262,7 +430,10 @@ class _SubscriptionTiersScreenState extends State<SubscriptionTiersScreen> {
                       onTap: () {
                         _onTapTier(tiers[i + 1], context);
                       },
-                      child: SubscriptionTierCard(tier: tiers[i + 1]))),
+                      child: SubscriptionTierCard(
+                        tier: tiers[i + 1],
+                        selectedBillingPeriod: selectedBillingPeriod,
+                      ))),
           ],
         ),
       );
@@ -283,7 +454,11 @@ class _SubscriptionTiersScreenState extends State<SubscriptionTiersScreen> {
       );
     } else {
       try {
-        await _subscriptionController.createSubscription(context, tier.priceId);
+        // Use the correct price ID based on selected billing period
+        String priceId = selectedBillingPeriod == 'yearly'
+            ? tier.yearlyPriceId
+            : tier.monthlyPriceId;
+        await _subscriptionController.createSubscription(context, priceId);
       } catch (e) {
         print("Tier tap error: $e");
         if (e.toString().contains('Session expired')) {

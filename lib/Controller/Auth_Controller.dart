@@ -40,11 +40,17 @@ class AuthController {
       );
       print(await response.stream.bytesToString());
       
-      // Always redirect new users to subscription page - they need to pay first
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => SubscriptionTiersScreen()),
-      );
+      // Auto-login the user after successful signup
+      try {
+        await login(user.email, user.password, context);
+      } catch (e) {
+        print("Auto-login failed after signup: $e");
+        // If auto-login fails, redirect to login screen
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => LoginScreen()),
+        );
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -122,21 +128,24 @@ class AuthController {
           log("Backend login response - subscription active: $backendSubscriptionActive");
         }
         
+        // Debug logging for new users
+        print("=== LOGIN DEBUG INFO ===");
+        print("Backend subscription active: $backendSubscriptionActive");
+        print("Frontend subscription status: $status");
+        print("Has recent payment: $hasRecentPayment");
+        
         // Determine if user should have access
         bool shouldAllowAccess = false;
         
+        // Only allow access if user has an ACTIVE subscription (not just recent payment)
         if (backendSubscriptionActive || (status != null && status['isActive'] == true)) {
           // User has active subscription from backend or frontend check
           shouldAllowAccess = true;
           print("Login: User has active subscription - allowing access to homepage");
-        } else if (hasRecentPayment) {
-          // User has made a recent payment (within 7 days) - temporary access
-          shouldAllowAccess = true;
-          print("Login: User has recent payment - allowing temporary access to homepage");
         } else {
-          // No active subscription and no recent payment - MUST subscribe
+          // No active subscription - MUST subscribe (including new users)
           shouldAllowAccess = false;
-          print("Login: No active subscription and no recent payment - redirecting to subscription page");
+          print("Login: No active subscription - redirecting to subscription page");
         }
         
         // Redirect based on subscription status

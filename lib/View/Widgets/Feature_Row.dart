@@ -4,8 +4,13 @@ import 'package:flutter/material.dart';
 class FeatureRow extends StatelessWidget {
   final String label;
   final String value;
+  final bool isEmphasized;
 
-  const FeatureRow({required this.label, required this.value});
+  const FeatureRow({
+    required this.label, 
+    required this.value,
+    this.isEmphasized = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -21,15 +26,15 @@ class FeatureRow extends StatelessWidget {
               text: TextSpan(
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.white,
+                  color: isEmphasized ? Colors.white : Colors.white.withOpacity(0.5),
                 ),
                 children: [
                   TextSpan(text: label),
                   TextSpan(
                     text: value,
                     style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      fontWeight: isEmphasized ? FontWeight.bold : FontWeight.normal,
+                      color: isEmphasized ? Colors.white : Colors.white.withOpacity(0.5),
                     ),
                   ),
                 ],

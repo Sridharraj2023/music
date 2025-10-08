@@ -10,7 +10,9 @@ class SubscriptionTier {
   final String soundscapeTracks;
   final String dynamicAudioFeatures;
   final String customTrackRequests;
-  final String priceId;
+  final String priceId; // Keep for backward compatibility
+  final String monthlyPriceId;
+  final String yearlyPriceId;
 
   SubscriptionTier({
     required this.title,
@@ -24,5 +26,7 @@ class SubscriptionTier {
     required this.dynamicAudioFeatures,
     required this.customTrackRequests,
     required this.priceId,
+    required this.monthlyPriceId,
+    required this.yearlyPriceId,
   });
 }

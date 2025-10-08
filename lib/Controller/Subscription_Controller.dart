@@ -65,6 +65,8 @@ class SubscriptionController {
             dynamicAudioFeatures: planData['dynamicAudioFeatures'] ?? 'No',
             customTrackRequests: planData['customTrackRequests'] ?? 'No',
             priceId: planData['priceId'] ?? ApiConstants.priceId,
+            monthlyPriceId: planData['monthlyPriceId'] ?? planData['priceId'] ?? ApiConstants.priceId,
+            yearlyPriceId: planData['yearlyPriceId'] ?? planData['priceId'] ?? ApiConstants.priceId,
           );
           
           _cachedTiers = [tier];
@@ -91,6 +93,8 @@ class SubscriptionController {
         dynamicAudioFeatures: 'No',
         customTrackRequests: 'No',
         priceId: ApiConstants.priceId,
+        monthlyPriceId: ApiConstants.priceId,
+        yearlyPriceId: ApiConstants.priceId,
       );
       
       _cachedTiers = [fallbackTier];

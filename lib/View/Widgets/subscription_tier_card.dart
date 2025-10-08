@@ -6,8 +6,14 @@ import 'Feature_Row.dart';
 
 class SubscriptionTierCard extends StatelessWidget {
   final SubscriptionTier tier;
+  final bool isAdmin;
+  final String selectedBillingPeriod;
 
-  const SubscriptionTierCard({required this.tier});
+  const SubscriptionTierCard({
+    required this.tier, 
+    this.isAdmin = false, 
+    this.selectedBillingPeriod = 'monthly',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -29,8 +35,16 @@ class SubscriptionTierCard extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 8),
-            FeatureRow(label: 'Monthly Cost:', value: tier.monthlyCost),
-            FeatureRow(label: 'Annual Cost:', value: tier.annualCost),
+            FeatureRow(
+              label: 'Monthly Cost: ', 
+              value: tier.monthlyCost,
+              isEmphasized: selectedBillingPeriod == 'monthly',
+            ),
+            FeatureRow(
+              label: 'Annual Cost: ', 
+              value: tier.annualCost,
+              isEmphasized: selectedBillingPeriod == 'yearly',
+            ),
             FeatureRow(label: 'Ad Supported:', value: tier.adSupported),
             FeatureRow(label: 'Audio File Type:', value: tier.audioFileType),
             FeatureRow(
@@ -38,9 +52,10 @@ class SubscriptionTierCard extends StatelessWidget {
             FeatureRow(label: 'Binaural Tracks:', value: tier.binauralTracks),
             FeatureRow(
                 label: 'Soundscape Tracks:', value: tier.soundscapeTracks),
-            FeatureRow(
-                label: 'Dynamic Audio Features:',
-                value: tier.dynamicAudioFeatures),
+            if (isAdmin)
+              FeatureRow(
+                  label: 'Dynamic Audio Features:',
+                  value: tier.dynamicAudioFeatures),
             FeatureRow(
                 label: 'Custom Track Requests:',
                 value: tier.customTrackRequests),
