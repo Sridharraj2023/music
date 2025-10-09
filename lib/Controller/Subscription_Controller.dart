@@ -569,6 +569,8 @@ class SubscriptionController {
       return {
         "isActive": isActive,
         "expiryDate": expiryDate,
+        "interval": subscription['interval'] ?? 'month',  // Add interval to response
+        "currentPeriodEnd": subscription['currentPeriodEnd'],  // Add currentPeriodEnd to response
       };
     } catch (e) {
       print("Error fetching subscription: $e");

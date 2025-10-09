@@ -24,6 +24,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
   bool _hasDefaultPaymentMethod = false;
   Map<String, dynamic>? _subscriptionStatus;
   bool _isSubscriptionActive = false;
+  String _subscriptionInterval = 'month'; // 'month' or 'year'
   
   DateTime? _coerceToDateTime(dynamic value) {
     try {
@@ -109,6 +110,30 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
         final status = await _subscriptionController.checkSubscriptionStatus(userEmail);
         print('Enhanced status check result: $status');
         
+        // Extract interval and expiry from enhanced status check if available
+        if (status != null && status['interval'] != null) {
+          final interval = status['interval'];
+          final currentPeriodEnd = status['currentPeriodEnd'];
+          print('Enhanced status check - interval: $interval');
+          print('Enhanced status check - currentPeriodEnd: $currentPeriodEnd');
+          
+          setState(() {
+            _subscriptionInterval = interval;
+            _subscriptionStatus = {'isActive': status['isActive']};
+            _isSubscriptionActive = status['isActive'] ?? false;
+            
+            // Use currentPeriodEnd from backend if available
+            if (currentPeriodEnd != null) {
+              final backendEnd = _coerceToDateTime(currentPeriodEnd);
+              if (backendEnd != null) {
+                expiryDate = backendEnd;
+                _updateRemainingDays();
+                print('Using backend currentPeriodEnd: $backendEnd');
+              }
+            }
+          });
+        }
+        
         // If that doesn't work, try the getSubscriptionStatus method
         if (status == null || status['isActive'] != true) {
           print('Enhanced check failed, trying getSubscriptionStatus...');
@@ -119,11 +144,18 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
             if (fullStatus['subscription'] != null) {
               final subscription = fullStatus['subscription'];
               final isActive = subscription['isActive'] ?? false;
+              final interval = subscription['interval'] ?? 'month';  // Get interval from backend
+              print('=== DEBUG: Full backend response ===');
+              print('Full status: $fullStatus');
+              print('Subscription object: $subscription');
               print('Subscription isActive from backend: $isActive');
+              print('Subscription interval from backend: $interval');
+              print('=====================================');
               
               setState(() {
                 _subscriptionStatus = {'isActive': isActive};
                 _isSubscriptionActive = isActive;
+                _subscriptionInterval = interval;  // Store interval
                 // Prefer backend expiry if available (supports epoch seconds/ms or ISO)
                 final backendEnd = subscription['currentPeriodEnd'];
                 final parsed = _coerceToDateTime(backendEnd);
@@ -622,7 +654,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                       // Validity Period
                       _buildInfoRow(
                         'Validity Period',
-                        '30 Days',
+                        _subscriptionInterval == 'year' ? '365 Days (1 Year)' : '30 Days (Monthly)',
                         Icons.calendar_today,
                       ),
                     ],
