@@ -181,6 +181,7 @@ import 'dart:convert';
 import '../../Controller/Auth_Controller.dart';
 import '../../Model/user.dart';
 import '../Widgets/Custom_TextField.dart';
+import '../Widgets/Password_Strength_Indicator.dart';
 import '../widgets/gradient_container.dart';
 import 'Login_Screen.dart';
 import 'SubscriptionTier_Screen.dart';
@@ -201,6 +202,27 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _isLoading = false; // To show a loading indicator
   bool _acceptedTerms = false;
   bool _acceptedDisclaimer = false;
+  String _currentPassword = ''; // Track password for strength indicator
+
+  @override
+  void initState() {
+    super.initState();
+    // Add listener to password controller for real-time updates
+    _passwordController.addListener(() {
+      setState(() {
+        _currentPassword = _passwordController.text;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
 
   void _signUp(BuildContext context) async {
     final username = _usernameController.text.trim();
@@ -242,13 +264,57 @@ class _SignupScreenState extends State<SignupScreen> {
       return;
     }
 
-    // Password strength validation (min 8 characters, contains letters and numbers)
-    final passwordRegex = RegExp(r'^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$');
-    if (!passwordRegex.hasMatch(password)) {
+    // Comprehensive password validation
+    bool hasMinLength = password.length >= 8;
+    bool hasUppercase = password.contains(RegExp(r'[A-Z]'));
+    bool hasLowercase = password.contains(RegExp(r'[a-z]'));
+    bool hasNumber = password.contains(RegExp(r'[0-9]'));
+    bool hasSpecialChar = password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
+
+    if (!hasMinLength) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-              "Password must be at least 8 characters and include both letters and numbers."),
+          content: Text("Password must be at least 8 characters long."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (!hasUppercase) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Password must contain at least one uppercase letter."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (!hasLowercase) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Password must contain at least one lowercase letter."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (!hasNumber) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Password must contain at least one number."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (!hasSpecialChar) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Password must contain at least one special character (!@#\$%^&*)."),
           backgroundColor: Colors.red,
         ),
       );
@@ -324,6 +390,9 @@ class _SignupScreenState extends State<SignupScreen> {
                         hintText: "Password",
                         obscureText: true,
                         controller: _passwordController),
+                    SizedBox(height: screenHeight * 0.01),
+                    // Password Strength Indicator
+                    PasswordStrengthIndicator(password: _currentPassword),
                     SizedBox(height: screenHeight * 0.02),
                     CustomTextField(
                         hintText: "Confirm Password",

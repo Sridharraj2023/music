@@ -177,4 +177,123 @@ class AuthController {
       );
     }
   }
+
+  // @desc    Request password reset
+  // @route   POST /api/users/forgot-password
+  // @access  Public
+  Future<void> requestPasswordReset(String email, BuildContext context) async {
+    String baseUrl = "${ApiConstants.resolvedApiUrl}/users/forgot-password";
+    var headers = {'Content-Type': 'application/json'};
+
+    try {
+      log("Requesting password reset for email: $email");
+      
+      var response = await http.post(
+        Uri.parse(baseUrl),
+        headers: headers,
+        body: jsonEncode({"email": email}),
+      );
+      
+      log("Password reset request status: ${response.statusCode}");
+
+      if (response.statusCode == 200) {
+        var responseData = jsonDecode(response.body);
+        log(responseData.toString());
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              responseData["message"] ?? 
+              "If an account with that email exists, a password reset link has been sent."
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+
+        // Navigate back to login screen after short delay
+        await Future.delayed(const Duration(seconds: 2));
+        if (context.mounted) {
+          Navigator.pop(context);
+        }
+      } else {
+        var errorData = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorData["message"] ?? "Failed to send reset email. Please try again."),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      log("Password reset request error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error: Unable to send reset email. Please check your connection."),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // @desc    Reset password with token
+  // @route   POST /api/users/reset-password/:token
+  // @access  Public
+  Future<void> resetPassword(String token, String newPassword, BuildContext context) async {
+    String baseUrl = "${ApiConstants.resolvedApiUrl}/users/reset-password/$token";
+    var headers = {'Content-Type': 'application/json'};
+
+    try {
+      log("Resetting password with token");
+      
+      var response = await http.post(
+        Uri.parse(baseUrl),
+        headers: headers,
+        body: jsonEncode({"password": newPassword}),
+      );
+      
+      log("Password reset status: ${response.statusCode}");
+
+      if (response.statusCode == 200) {
+        var responseData = jsonDecode(response.body);
+        log(responseData.toString());
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              responseData["message"] ?? 
+              "Password reset successful. You can now log in with your new password."
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+
+        // Navigate to login screen after short delay
+        await Future.delayed(const Duration(seconds: 2));
+        if (context.mounted) {
+          // Navigate to login screen using Get
+          Get.off(() => LoginScreen());
+        }
+      } else {
+        var errorData = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorData["message"] ?? "Failed to reset password. The link may have expired."),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      log("Password reset error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error: Unable to reset password. Please try again."),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 }

@@ -174,6 +174,8 @@ import '../../Controller/Auth_Controller.dart';
 import '../Widgets/Custom_TextField.dart';
 import '../Widgets/Gradient_Container.dart';
 import 'Signup_Screen.dart';
+import 'ForgotPassword_Screen.dart';
+import 'TermsConditions_Screen.dart';
 
 class LoginScreen extends StatelessWidget {
   final AuthController _authController = AuthController();
@@ -283,7 +285,31 @@ class LoginScreen extends StatelessWidget {
                       controller: _passwordController,
                     ),
 
-                    SizedBox(height: screenHeight * 0.02),
+                    SizedBox(height: screenHeight * 0.01),
+
+                    // Forgot Password Link
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const ForgotPasswordScreen()),
+                          );
+                        },
+                        child: Text(
+                          "Forgot Password?",
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.9),
+                            fontSize: screenWidth * 0.035,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(height: screenHeight * 0.01),
 
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -339,6 +365,9 @@ class LoginScreen extends StatelessWidget {
                         ),
                       ),
                     ),
+
+                    SizedBox(height: screenHeight * 0.02),
+
                   ],
                 ),
               ),
