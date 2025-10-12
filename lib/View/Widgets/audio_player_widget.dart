@@ -4,6 +4,7 @@ import 'package:elevate/Model/music_item.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../Controller/BottomBar_Controller.dart';
+import '../../utils/responsive_helper.dart';
 import 'full_audio_player.dart';
 
 class AudioPlayerWidget extends StatefulWidget {
@@ -117,9 +118,11 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
         borderRadius: BorderRadius.circular(0),
       ),
       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-      child: Row(
-        mainAxisSize: MainAxisSize.max,
-        children: [
+      child: ResponsiveCenter(
+        maxWidth: 800,
+        child: Row(
+          mainAxisSize: MainAxisSize.max,
+          children: [
           // Vertical Label & Image
           Expanded(
             flex: 1,
@@ -300,6 +303,7 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
             ),
           ),
         ],
+        ),
       ),
     );
   }

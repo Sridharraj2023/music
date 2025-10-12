@@ -19,6 +19,8 @@ import 'package:elevate/View/Widgets/subscription_status.dart';
 import 'package:elevate/View/Screens/Subscription_Details_Screen.dart';
 import 'package:elevate/View/Screens/Notification_Preferences_Screen.dart';
 import 'package:elevate/View/Screens/Notification_History_Screen.dart';
+import 'package:elevate/View/Screens/TermsConditions_Screen.dart';
+import 'package:elevate/View/Screens/Disclaimer_Screen.dart';
 import 'package:elevate/utlis/api_test.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -237,6 +239,32 @@ class _HomePageState extends State<HomePage>
             ),
             Divider(),
             ListTile(
+              leading: Icon(Icons.description, color: Color(0xFF6F41F3)),
+              title: Text("Terms & Conditions"),
+              onTap: () {
+                Navigator.pop(context); // Close drawer
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const TermsConditionsScreen(),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.warning, color: Color(0xFF6F41F3)),
+              title: Text("Disclaimer"),
+              onTap: () {
+                Navigator.pop(context); // Close drawer
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const DisclaimerScreen(),
+                  ),
+                );
+              },
+            ),
+            ListTile(
               leading: Icon(Icons.info, color: Colors.black),
               title: Text("About"),
               onTap: () {
@@ -316,19 +344,10 @@ class _HomePageState extends State<HomePage>
                           ),
                         ],
                       ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) =>
-                                      SubscriptionTiersScreen()));
-                        },
-                        child: Image.asset(
-                            'assets/images/Elevate Logo White.png',
-                            height: 60,
-                            width: 60),
-                      )
+                      Image.asset(
+                          'assets/images/Elevate Logo White.png',
+                          height: 60,
+                          width: 60)
                     ],
                   ),
                   const SizedBox(height: 20),

@@ -76,16 +76,17 @@ class _TermsConditionsScreenState extends State<TermsConditionsScreen> {
                       icon: const Icon(Icons.arrow_back, color: Colors.white),
                       onPressed: () => Navigator.pop(context),
                     ),
-                    Expanded(
-                      child: Text(
-                        'Terms & Conditions',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: screenWidth * 0.05,
-                          fontWeight: FontWeight.bold,
+                      Expanded(
+                        child: Text(
+                          'Terms & Conditions',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: screenWidth * 0.05,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -96,10 +97,38 @@ class _TermsConditionsScreenState extends State<TermsConditionsScreen> {
                   margin: EdgeInsets.all(screenWidth * 0.04),
                   padding: EdgeInsets.all(screenWidth * 0.05),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Colors.white.withOpacity(0.95),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: _buildContent(screenWidth),
+                ),
+              ),
+
+              // I Agree Button
+              Padding(
+                padding: EdgeInsets.all(screenWidth * 0.04),
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context, true); // Return true to indicate agreement
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    padding: EdgeInsets.symmetric(
+                      vertical: screenWidth * 0.04,
+                    ),
+                    minimumSize: Size(screenWidth * 0.9, 50),
+                  ),
+                  child: Text(
+                    "I Agree",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: screenWidth * 0.045,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
             ],

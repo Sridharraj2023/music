@@ -57,6 +57,7 @@ import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../Controller/Binaural_controller.dart';
+import '../../utils/responsive_helper.dart';
 import '../Widgets/Gradient_Container.dart';
 import '../Widgets/Round_option_button.dart';
 import '../Widgets/SubscriptionGuard.dart';
@@ -70,22 +71,24 @@ class BinauralPage extends StatelessWidget {
     return SubscriptionGuard(
       customMessage: 'Please subscribe to access binaural content',
       child: GradientContainer(
-      child: FutureBuilder<List<Category>>(
-        future: _binauralController.fetchBinauralCategory(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-                child: CircularProgressIndicator(
-              color: Colors.white,
-            ));
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-            final types = snapshot.data!;
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-              child: Column(
-                children: [
+      child: ResponsiveCenter(
+        maxWidth: 800,
+        child: FutureBuilder<List<Category>>(
+          future: _binauralController.fetchBinauralCategory(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                  child: CircularProgressIndicator(
+                color: Colors.white,
+              ));
+            } else if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+              final types = snapshot.data!;
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                child: Column(
+                  children: [
                   Expanded(
                     child: GridView.count(
                       crossAxisCount: 2,

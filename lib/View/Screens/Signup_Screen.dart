@@ -186,6 +186,8 @@ import '../widgets/gradient_container.dart';
 import 'Login_Screen.dart';
 import 'SubscriptionTier_Screen.dart';
 import 'Legal_Pdf_View.dart';
+import 'TermsConditions_Screen.dart';
+import 'Disclaimer_Screen.dart';
 
 class SignupScreen extends StatefulWidget {
   @override
@@ -201,7 +203,6 @@ class _SignupScreenState extends State<SignupScreen> {
       TextEditingController();
   bool _isLoading = false; // To show a loading indicator
   bool _acceptedTerms = false;
-  bool _acceptedDisclaimer = false;
   String _currentPassword = ''; // Track password for strength indicator
 
   @override
@@ -417,13 +418,11 @@ class _SignupScreenState extends State<SignupScreen> {
                               const Text('I agree to the ', style: TextStyle(color: Colors.white)),
                               GestureDetector(
                                 onTap: () async {
+                                  // Navigate to TermsConditionsScreen to show terms from admin
                                   final result = await Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) => const LegalPdfView(
-                                        title: 'Terms & Conditions',
-                                        assetPath: 'assets/legal/terms.pdf',
-                                      ),
+                                      builder: (_) => const TermsConditionsScreen(),
                                     ),
                                   );
                                   // If user clicked "I Agree", automatically check the checkbox
@@ -433,37 +432,16 @@ class _SignupScreenState extends State<SignupScreen> {
                                 },
                                 child: const Text('Terms & Conditions', style: TextStyle(color: Colors.white, decoration: TextDecoration.underline)),
                               ),
-                            ],
-                          ),
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                        CheckboxListTile(
-                          value: _acceptedDisclaimer,
-                          onChanged: (v) => setState(() => _acceptedDisclaimer = v ?? false),
-                          controlAffinity: ListTileControlAffinity.leading,
-                          dense: true,
-                          visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
-                          activeColor: Colors.white,
-                          checkColor: Colors.black,
-                          title: Wrap(
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            children: [
-                              const Text('I have read the ', style: TextStyle(color: Colors.white)),
+                              const Text(' and ', style: TextStyle(color: Colors.white)),
                               GestureDetector(
                                 onTap: () async {
-                                  final result = await Navigator.push(
+                                  // Navigate to DisclaimerScreen to show disclaimer from admin
+                                  await Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) => const LegalPdfView(
-                                        title: 'Disclaimer',
-                                        assetPath: 'assets/legal/disclaimer.pdf',
-                                      ),
+                                      builder: (_) => const DisclaimerScreen(),
                                     ),
                                   );
-                                  // If user clicked "I Agree", automatically check the checkbox
-                                  if (result == true) {
-                                    setState(() => _acceptedDisclaimer = true);
-                                  }
                                 },
                                 child: const Text('Disclaimer', style: TextStyle(color: Colors.white, decoration: TextDecoration.underline)),
                               ),
@@ -479,7 +457,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     _isLoading
                         ? CircularProgressIndicator(color: Colors.white)
                         : ElevatedButton(
-                            onPressed: (_acceptedTerms && _acceptedDisclaimer) ? () => _signUp(context) : null,
+                            onPressed: _acceptedTerms ? () => _signUp(context) : null,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.black,
                               shape: RoundedRectangleBorder(

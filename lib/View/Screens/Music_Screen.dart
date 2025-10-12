@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
 import '../../Controller/Music_Controller.dart';
+import '../../utils/responsive_helper.dart';
 import '../Widgets/Recently_played_items.dart';
 
 import '../widgets/section_title.dart';
@@ -24,12 +25,14 @@ class MusicPage extends StatelessWidget {
       customMessage: 'Please subscribe to access music content',
       child: Scaffold(
       backgroundColor: Colors.transparent,
-      body: Padding(
-        padding: const EdgeInsets.all(10.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+      body: ResponsiveCenter(
+        maxWidth: 800,
+        child: Padding(
+          padding: const EdgeInsets.all(10.0),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               // const SectionTitle(
               //     title: "Recommendations",
               //     subtitle: "Based on...",

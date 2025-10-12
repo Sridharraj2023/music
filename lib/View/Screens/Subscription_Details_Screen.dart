@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:elevate/Controller/Subscription_Controller.dart';
 import 'package:elevate/utlis/clear_false_payment_data.dart';
 import 'package:elevate/utlis/subscription_flow_debug.dart';
+import 'package:elevate/utils/responsive_helper.dart';
 import 'Payment_Method_Setup_Screen.dart';
 
 class SubscriptionDetailsScreen extends StatefulWidget {
@@ -477,11 +478,13 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+          child: ResponsiveCenter(
+            maxWidth: 600,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 // Status Card
                 Container(
                   width: double.infinity,
