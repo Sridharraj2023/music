@@ -478,11 +478,9 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
           ),
         ),
         child: SafeArea(
-          child: ResponsiveCenter(
-            maxWidth: 600,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                 // Status Card
@@ -941,8 +939,8 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
             ),
           ),
         ),
-      ),
-    );
+      ), // Closes Container (body)
+    ); // Closes Scaffold
   }
 
 

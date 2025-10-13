@@ -161,29 +161,31 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Obx(() {
-                  final currentTrack = label == 'binaural'
-                      ? controller.binauralPlaylists[
-                          controller.currentBinauralIndex.value]
-                      : controller
-                          .musicPlaylists[controller.currentMusicIndex.value];
-                  log("Current Track: ${currentTrack.title}");
+                Expanded(
+                  child: Obx(() {
+                    final currentTrack = label == 'binaural'
+                        ? controller.binauralPlaylists[
+                            controller.currentBinauralIndex.value]
+                        : controller
+                            .musicPlaylists[controller.currentMusicIndex.value];
+                    log("Current Track: ${currentTrack.title}");
 
-                  return Text(
-                    currentTrack.title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  );
-                }),
+                    return Text(
+                      currentTrack.title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    );
+                  }),
+                ),
                 const Text(
                   "Frequency Tuning",
                   style: TextStyle(
-                    fontSize: 8,
+                    fontSize: 7,
                     color: Colors.white70,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -193,7 +195,7 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                     Text(
                       positionText,
                       style: const TextStyle(
-                        fontSize: 7,
+                        fontSize: 6,
                         color: Colors.white70,
                       ),
                     ),
@@ -214,7 +216,7 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                     Text(
                       durationText,
                       style: const TextStyle(
-                        fontSize: 7,
+                        fontSize: 6,
                         color: Colors.white70,
                       ),
                     ),
@@ -229,35 +231,37 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
             flex: 2,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     InkWell(
                       onTap: () => previous(),
                       child: const Icon(Icons.skip_previous,
-                          color: Colors.white, size: 20),
+                          color: Colors.white, size: 18),
                     ),
-                    const SizedBox(width: 2),
+                    const SizedBox(width: 1),
                     InkWell(
                       onTap: () => togglePlayPause(),
                       child: Icon(
                           isPlaying ? Icons.pause : Icons.play_arrow,
                           color: Colors.white,
-                          size: 18),
+                          size: 16),
                     ),
-                    const SizedBox(width: 2),
+                    const SizedBox(width: 1),
                     InkWell(
                       onTap: () => next(),
                       child: const Icon(Icons.skip_next,
-                          color: Colors.white, size: 20),
+                          color: Colors.white, size: 18),
                     ),
-                    const SizedBox(width: 2),
+                    const SizedBox(width: 1),
                     InkWell(
                       onTap: stop,
                       child: const Icon(Icons.close,
-                          color: Colors.red, size: 20),
+                          color: Colors.red, size: 18),
                     ),
-                    const SizedBox(width: 2),
+                    const SizedBox(width: 1),
                     InkWell(
                       onTap: () {
                         Get.to(() => FullAudioPlayerScreen(
@@ -266,25 +270,27 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                             ));
                       },
                       child: const Icon(Icons.fullscreen,
-                          color: Colors.white, size: 20),
+                          color: Colors.white, size: 18),
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SizedBox(
-                      height: 16,
-                      width: 80,
-                      child: Slider(
-                        value: volume.value,
-                        onChanged: setVolume,
-                        min: 0,
-                        max: 1,
-                        activeColor: Colors.white,
+                    Expanded(
+                      child: SizedBox(
+                        height: 16,
+                        child: Slider(
+                          value: volume.value,
+                          onChanged: setVolume,
+                          min: 0,
+                          max: 1,
+                          activeColor: Colors.white,
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 2),
                     InkWell(
                       onTap: () {
                         setVolume(volume.value > 0 ? 0 : 0.5);
@@ -294,7 +300,7 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                             ? Icons.volume_off
                             : Icons.volume_up,
                         color: Colors.white,
-                        size: 16,
+                        size: 14,
                       ),
                     ),
                   ],

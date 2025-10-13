@@ -21,7 +21,7 @@ class MusicPage extends StatelessWidget {
     final recentlyPlayed = controller.getRecentlyPlayed();
     // final genres = controller.getGenres();
 
-    return SubscriptionGuard(
+    return SubscriptionGuard(   
       customMessage: 'Please subscribe to access music content',
       child: Scaffold(
       backgroundColor: Colors.transparent,
@@ -118,7 +118,8 @@ class MusicPage extends StatelessWidget {
           ),
         ),
       ),
-      ),
-    );
+    ),
+    ), // Closes Scaffold
+    ); // Closes SubscriptionGuard
   }
 }

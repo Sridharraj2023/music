@@ -3,6 +3,7 @@ import 'package:flutter_html/flutter_html.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../utlis/api_constants.dart';
+import '../../utils/responsive_helper.dart';
 import '../Widgets/Gradient_Container.dart';
 
 class TermsConditionsScreen extends StatefulWidget {
@@ -93,14 +94,17 @@ class _TermsConditionsScreenState extends State<TermsConditionsScreen> {
 
               // Content
               Expanded(
-                child: Container(
-                  margin: EdgeInsets.all(screenWidth * 0.04),
-                  padding: EdgeInsets.all(screenWidth * 0.05),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.95),
-                    borderRadius: BorderRadius.circular(20),
+                child: ResponsiveCenter(
+                  maxWidth: 700,
+                  child: Container(
+                    margin: EdgeInsets.all(screenWidth * 0.04),
+                    padding: EdgeInsets.all(screenWidth * 0.05),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.95),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: _buildContent(screenWidth),
                   ),
-                  child: _buildContent(screenWidth),
                 ),
               ),
 
@@ -197,7 +201,7 @@ class _TermsConditionsScreenState extends State<TermsConditionsScreen> {
           Text(
             _terms!['title'] ?? 'Terms and Conditions',
             style: TextStyle(
-              fontSize: screenWidth * 0.06,
+              fontSize: ResponsiveHelper.getResponsiveFontSize(context, 18),
               fontWeight: FontWeight.bold,
               color: Colors.black87,
             ),
@@ -228,7 +232,7 @@ class _TermsConditionsScreenState extends State<TermsConditionsScreen> {
                   child: Text(
                     'Version ${_terms!['version']} • Effective ${_formatDate(_terms!['effectiveDate'])}',
                     style: TextStyle(
-                      fontSize: screenWidth * 0.032,
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(context, 12),
                       color: Colors.black54,
                     ),
                   ),
@@ -244,30 +248,30 @@ class _TermsConditionsScreenState extends State<TermsConditionsScreen> {
             data: _terms!['content'] ?? '',
             style: {
               "body": Style(
-                fontSize: FontSize(screenWidth * 0.04),
+                fontSize: FontSize(ResponsiveHelper.getResponsiveFontSize(context, 14)),
                 lineHeight: const LineHeight(1.6),
                 color: Colors.black87,
               ),
               "h1": Style(
-                fontSize: FontSize(screenWidth * 0.055),
+                fontSize: FontSize(ResponsiveHelper.getResponsiveFontSize(context, 18)),
                 fontWeight: FontWeight.bold,
                 color: Colors.black,
                 margin: Margins.only(top: 16, bottom: 8),
               ),
               "h2": Style(
-                fontSize: FontSize(screenWidth * 0.05),
+                fontSize: FontSize(ResponsiveHelper.getResponsiveFontSize(context, 16)),
                 fontWeight: FontWeight.bold,
                 color: Colors.black,
                 margin: Margins.only(top: 14, bottom: 7),
               ),
               "h3": Style(
-                fontSize: FontSize(screenWidth * 0.045),
+                fontSize: FontSize(ResponsiveHelper.getResponsiveFontSize(context, 15)),
                 fontWeight: FontWeight.bold,
                 color: Colors.black,
                 margin: Margins.only(top: 12, bottom: 6),
               ),
               "p": Style(
-                fontSize: FontSize(screenWidth * 0.04),
+                fontSize: FontSize(ResponsiveHelper.getResponsiveFontSize(context, 14)),
                 margin: Margins.only(bottom: 12),
               ),
               "ul": Style(
@@ -289,7 +293,7 @@ class _TermsConditionsScreenState extends State<TermsConditionsScreen> {
             child: Text(
               'Last updated: ${_formatDate(_terms!['updatedAt'])}',
               style: TextStyle(
-                fontSize: screenWidth * 0.03,
+                fontSize: ResponsiveHelper.getResponsiveFontSize(context, 11),
                 color: Colors.black38,
                 fontStyle: FontStyle.italic,
               ),

@@ -71,9 +71,7 @@ class BinauralPage extends StatelessWidget {
     return SubscriptionGuard(
       customMessage: 'Please subscribe to access binaural content',
       child: GradientContainer(
-      child: ResponsiveCenter(
-        maxWidth: 800,
-        child: FutureBuilder<List<Category>>(
+      child: FutureBuilder<List<Category>>(
           future: _binauralController.fetchBinauralCategory(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
