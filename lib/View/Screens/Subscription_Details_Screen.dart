@@ -935,6 +935,8 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                     ),
                   ],
                 ),
+                // Add safe area padding for system navigation bar
+                SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
               ],
             ),
           ),

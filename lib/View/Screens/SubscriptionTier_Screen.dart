@@ -397,7 +397,8 @@ class _SubscriptionTiersScreenState extends State<SubscriptionTiersScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 80), // Increased padding to clear bottom navigation
+                  // Add safe area padding for system navigation bar
+                  SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
                 ],
             ),
           ),
