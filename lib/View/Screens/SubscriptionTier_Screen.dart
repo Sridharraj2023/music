@@ -1,5 +1,6 @@
 // views/screens/subscription_tiers_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../Controller/Subscription_Controller.dart';
@@ -55,18 +56,8 @@ class _SubscriptionTiersScreenState extends State<SubscriptionTiersScreen> {
   Widget build(BuildContext context) {
     if (isLoading) {
       return Scaffold(
-        body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFF3A55F8), // Top blue
-                Color(0xFF6F41F3), // Middle purple
-                Color(0xFF8A2BE2), // Bottom violet
-              ],
-            ),
-          ),
+        backgroundColor: Colors.transparent,
+        body: GradientContainer(
           child: const Center(
             child: CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
@@ -78,18 +69,8 @@ class _SubscriptionTiersScreenState extends State<SubscriptionTiersScreen> {
 
     if (errorMessage != null) {
       return Scaffold(
-        body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFF3A55F8), // Top blue
-                Color(0xFF6F41F3), // Middle purple
-                Color(0xFF8A2BE2), // Bottom violet
-              ],
-            ),
-          ),
+        backgroundColor: Colors.transparent,
+        body: GradientContainer(
           child: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -119,21 +100,12 @@ class _SubscriptionTiersScreenState extends State<SubscriptionTiersScreen> {
           ),
         ),
       );
-    }
+  }
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF3A55F8), // Top blue
-              Color(0xFF6F41F3), // Middle purple
-              Color(0xFF8A2BE2), // Bottom violet
-            ],
-          ),
-        ),
+      backgroundColor: Colors.transparent,
+      body: GradientContainer(
+        child: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(10.0),
@@ -402,6 +374,7 @@ class _SubscriptionTiersScreenState extends State<SubscriptionTiersScreen> {
                 ],
             ),
           ),
+        ),
         ),
       ),
     );
