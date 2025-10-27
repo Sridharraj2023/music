@@ -2,7 +2,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ApiConstants {
   // API Configuration
-  static String get apiUrl => dotenv.env['API_URL'] ?? "https://elevate-backend-s28.onrender.com/api";
+  static String get apiUrl => dotenv.env['API_URL'] ?? "http://172.234.201.117:5000/api";
   
   // Stripe Configuration (Publishable Key only - safe for frontend)
   static String get publishKey => dotenv.env['STRIPE_PUBLISHABLE_KEY'] ?? 'pk_test_51RqimhIjXTLOotvoR7Z3f1z7Ud8BWXwKOjDHoGLnhM8QIMdJS31JVZ0zqpAPTghFS0GZ9NwIl4zT1I3mkvzfRatm00isg3USh7';
@@ -39,11 +39,20 @@ class ApiConstants {
   }
   
   static void useProductionServer() {
-    setApiUrlOverride("https://elevate-backend-s28.onrender.com/api");
+    setApiUrlOverride(apiUrl);
   }
   
   static void resetToEnvDefault() {
     _overrideApiUrl = null;
     print('API URL reset to environment default: $apiUrl');
   }
+  
+  // Helper method to check if URL is from the configured API server
+  static bool isApiServerUrl(String url) {
+    final baseUrl = apiUrl.replaceAll('/api', '');
+    return url.contains(Uri.parse(baseUrl).host);
+  }
+  
+  // Helper method to get base URL without /api suffix
+  static String get baseUrl => apiUrl.replaceAll('/api', '');
 }

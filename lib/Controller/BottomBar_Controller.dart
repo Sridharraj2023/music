@@ -259,7 +259,7 @@ class BottomBarController extends GetxController {
             
             // Check if this is a production server 500 error
             final finalUrl = _convertToProductionUrl(assetPath);
-            if (finalUrl.contains('elevate-backend-s28.onrender.com')) {
+            if (ApiConstants.isApiServerUrl(finalUrl)) {
               print("💡 SOLUTION: This file needs to be uploaded to production server");
               print("   File: ${Uri.parse(finalUrl).pathSegments.last}");
               print("   Upload this file from local server to production server");
@@ -379,7 +379,7 @@ class BottomBarController extends GetxController {
             
             // Check if this is a production server 500 error
             final finalUrl = _convertToProductionUrl(assetPath);
-            if (finalUrl.contains('elevate-backend-s28.onrender.com')) {
+            if (ApiConstants.isApiServerUrl(finalUrl)) {
               print("💡 SOLUTION: This file needs to be uploaded to production server");
               print("   File: ${Uri.parse(finalUrl).pathSegments.last}");
               print("   Upload this file from local server to production server");
@@ -609,7 +609,7 @@ class BottomBarController extends GetxController {
       }
       
       // If it's already a production URL, return as is
-      if (url.contains('elevate-backend-s28.onrender.com') || url.contains('onrender.com')) {
+      if (ApiConstants.isApiServerUrl(url)) {
         print("✅ Already using production URL: $url");
         return url;
       }
